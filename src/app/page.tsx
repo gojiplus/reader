@@ -3,10 +3,11 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { AuthProvider, useAuth } from '@/contexts/AuthContext'; // Import AuthProvider
-import { db, auth } from '@/lib/firebase/clientApp'; // Import Firestore DB and Auth
-import { collection, addDoc, query, where, getDocs, doc, onSnapshot, orderBy, deleteDoc } from 'firebase/firestore'; // Firestore functions
-import { FileUpload } from '@/components/feature/file-upload';
+import { useAuth } from '@/contexts/AuthContext';
+import { db, auth, storage } from '@/lib/firebase/clientApp'; // Import Storage too
+import { collection, addDoc, query, where, getDocs, doc, onSnapshot, orderBy, deleteDoc, updateDoc, serverTimestamp, Timestamp } from 'firebase/firestore'; // Firestore functions
+import { deleteObject, ref } from 'firebase/storage'; // Storage delete function
+import { FileUpload, type FileUploadMetadata } from '@/components/feature/file-upload'; // Import updated type
 import {
   SidebarProvider,
   Sidebar,
@@ -20,50 +21,63 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
-import { Book, Play, Pause, Square, Loader2, Lightbulb, HelpCircle, ArrowLeft, Check, X, LogOut, Trash2, LogIn } from 'lucide-react';
-import { Button, buttonVariants } from '@/components/ui/button'; // Import buttonVariants
+import { Book, Play, Pause, Square, Loader2, Lightbulb, HelpCircle, ArrowLeft, Check, X, LogOut, Trash2, LogIn, Headphones, AudioLines } from 'lucide-react';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { speakText, pauseSpeech, resumeSpeech, stopSpeech } from '@/services/tts';
+// Import TTS functions
+import { speakText, pauseSpeech, resumeSpeech, stopSpeech, getCurrentUtteranceText } from '@/services/tts';
 import { summarizeAudiobookChapter, type SummarizeAudiobookChapterOutput } from '@/ai/flows/summarize-audiobook-chapter';
 import { generateQuizQuestions, type GenerateQuizQuestionsOutput, type GenerateQuizQuestionsInput, type Question } from '@/ai/flows/generate-quiz-questions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { signOut } from 'firebase/auth';
+import { convertFileToText } from '@/services/file-conversion'; // Keep for extracting text on demand
 
 
 // Define a type for a book including its content and Firestore ID
 interface BookItem {
   id: string; // Firestore document ID
   userId: string; // Firebase Auth User ID
-  name: string;
-  content: string; // Full text content
-  createdAt: Date; // Timestamp for ordering
+  name: string; // Original filename
+  contentType: string; // MIME type
+  size: number; // File size
+  storageUrl: string; // URL in Firebase Storage
+  textContent?: string; // Extracted text content (optional, loaded on demand)
+  createdAt: Timestamp; // Firestore Timestamp
+  audioStorageUrl?: string; // URL for generated audio file in Storage
 }
 
 // Define types for AI generated content
 type SummaryState = { loading: boolean; data: SummarizeAudiobookChapterOutput | null; error: string | null };
 type QuizState = { loading: boolean; data: GenerateQuizQuestionsOutput | null; error: string | null };
 type UserAnswers = { [questionIndex: number]: string };
+type AudioGenerationState = { loading: boolean; error: string | null; audioUrl?: string | null };
+type TextExtractionState = { loading: boolean; error: string | null };
+
 
 // Moved HomeContent outside to access useSidebar and useAuth hooks
 function HomeContent() {
-  const { isMobile } = useSidebar(); // Access isMobile state from context
-  const { user, loading: authLoading } = useAuth(); // Access user and loading state from AuthContext
+  const { isMobile } = useSidebar();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
 
   const [books, setBooks] = useState<BookItem[]>([]);
-  const [booksLoading, setBooksLoading] = useState(true); // Separate loading state for books
+  const [booksLoading, setBooksLoading] = useState(true);
   const [selectedBook, setSelectedBook] = useState<BookItem | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
+  // State for Browser TTS
+  const [isSpeakingState, setIsSpeakingState] = useState(false);
   const [isPausedState, setIsPausedState] = useState(false);
+
   const [summaryState, setSummaryState] = useState<SummaryState>({ loading: false, data: null, error: null });
   const [quizState, setQuizState] = useState<QuizState>({ loading: false, data: null, error: null });
-  const [viewMode, setViewMode] = useState<'library' | 'reader'>('library'); // 'library' or 'reader'
+  const [audioState, setAudioState] = useState<AudioGenerationState>({ loading: false, error: null, audioUrl: null });
+  const [textExtractionState, setTextExtractionState] = useState<TextExtractionState>({ loading: false, error: null });
+  const [viewMode, setViewMode] = useState<'library' | 'reader'>('library');
   const [userAnswers, setUserAnswers] = useState<UserAnswers>({});
   const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [quizScore, setQuizScore] = useState<number | null>(null);
@@ -80,107 +94,151 @@ function HomeContent() {
 
    // Fetch books from Firestore for the logged-in user
    useEffect(() => {
-    if (user) {
-      setBooksLoading(true); // Start loading books
+    if (user && db) {
+      setBooksLoading(true);
       const booksCollection = collection(db, 'books');
-      const q = query(booksCollection, where('userId', '==', user.uid), orderBy('createdAt', 'desc')); // Order by creation time
+      const q = query(booksCollection, where('userId', '==', user.uid), orderBy('createdAt', 'desc'));
 
-      // Use onSnapshot for real-time updates
       const unsubscribe = onSnapshot(q, (querySnapshot) => {
         const userBooks = querySnapshot.docs.map(doc => ({
           id: doc.id,
-          userId: doc.data().userId,
-          name: doc.data().name,
-          content: doc.data().content,
-          createdAt: doc.data().createdAt.toDate(), // Convert Firestore Timestamp to Date
+          ...doc.data(),
+          // textContent might not be stored, ensure it defaults safely
+          textContent: doc.data().textContent || undefined,
+          createdAt: doc.data().createdAt || serverTimestamp(), // Ensure createdAt exists
         })) as BookItem[];
         setBooks(userBooks);
-        setBooksLoading(false); // Finish loading books
-        console.log("Books loaded:", userBooks.length);
+        setBooksLoading(false);
+        console.log("Books loaded/updated:", userBooks.length);
       }, (error) => {
         console.error("Error fetching books:", error);
-        toast({ variant: "destructive", title: "Error Loading Books", description: "Could not fetch your bookshelf." });
-        setBooksLoading(false); // Finish loading even on error
+        toast({ variant: "destructive", title: "Error Loading Books", description: "Could not fetch your bookshelf. Check Firestore rules or connection." });
+        setBooksLoading(false);
       });
 
-      // Cleanup listener on unmount or user change
       return () => unsubscribe();
+    } else if (!db && user) {
+        console.error("Firestore instance (db) is not available. Cannot fetch books.");
+        toast({ variant: "destructive", title: "Database Error", description: "Could not connect to the database to fetch books." });
+        setBooksLoading(false);
     } else {
-      setBooks([]); // Clear books if no user
-      setBooksLoading(false); // Not loading if no user
+      setBooks([]);
+      setBooksLoading(false);
     }
-  }, [user, toast]); // Rerun when user changes
+  }, [user, toast]);
 
 
-   const addBook = useCallback(async (fileName: string, textContent: string) => {
+   const addBook = useCallback(async (metadata: FileUploadMetadata) => {
         if (!user) {
             toast({ variant: "destructive", title: "Not Logged In", description: "You must be logged in to add books." });
             return;
         }
+         if (!db) {
+            console.error("Firestore instance (db) is not available. Cannot add book.");
+            toast({ variant: "destructive", title: "Database Error", description: "Could not connect to the database to save the book." });
+            return;
+         }
 
-        // Basic check for duplicates (can be improved)
-        if (books.some(book => book.name === fileName && book.userId === user.uid)) {
+        // Basic check for duplicates based on name and user
+        if (books.some(book => book.name === metadata.fileName && book.userId === user.uid)) {
             toast({
             variant: "default",
             title: "Duplicate File",
-            description: `${fileName} already exists in your library.`,
+            description: `${metadata.fileName} already exists in your library.`,
             });
+            // Even if duplicate, allow refresh logic to run if metadata is different (e.g., new text extracted)
+            // But don't add a new Firestore document. Consider updating existing if needed.
+            // For now, just prevent adding a new doc.
             return;
         }
 
         try {
             const booksCollection = collection(db, 'books');
+            // Prepare data for Firestore, using metadata from storage upload
             const newBookData = {
                 userId: user.uid,
-                name: fileName,
-                content: textContent,
-                createdAt: new Date(), // Use JS Date, Firestore converts it
+                name: metadata.fileName,
+                contentType: metadata.contentType,
+                size: metadata.size,
+                storageUrl: metadata.storageUrl,
+                textContent: metadata.textContent || null, // Store extracted text if available, otherwise null
+                createdAt: serverTimestamp(), // Use Firestore server timestamp
+                audioStorageUrl: null, // Initialize audio URL field
             };
             const docRef = await addDoc(booksCollection, newBookData);
-            console.log("Book added with ID: ", docRef.id);
-            toast({
-                title: "Book Added",
-                description: `${fileName} added to your library.`,
-            });
-            // No need to manually update state, onSnapshot will handle it
-            // setViewMode('library'); // Stay in library view -- Removed, let user stay if they were in reader
-            // Reset player state if a book was playing irrelevant to the added book
-            if (isPlaying || isPausedState) {
-                stopSpeech();
-                setIsPlaying(false);
-                setIsPausedState(false);
-            }
+            console.log("Book added to Firestore with ID: ", docRef.id);
+            // toast already shown in FileUpload component
+            // No need to manually add to state, onSnapshot will handle it
         } catch (e) {
-            console.error("Error adding document: ", e);
+            console.error("Error adding book metadata to Firestore: ", e);
             toast({
                 variant: "destructive",
-                title: "Error Adding Book",
-                description: "Could not save the book to your library.",
+                title: "Error Saving Book",
+                description: "Could not save the book metadata to your library.",
             });
+            // Consider deleting the uploaded file from storage if DB entry fails?
+            // await deleteFileFromStorage(metadata.storageUrl); // Requires implementation
         }
-    }, [user, books, isPlaying, isPausedState, toast]); // Include books in dependencies for duplicate check
+    }, [user, books, toast]); // Removed setBooks from dependencies
 
-    const deleteBook = async (bookId: string, bookName: string) => {
-        if (!user) return; // Should not happen if button is shown correctly
+
+    const deleteBook = async (bookToDelete: BookItem) => {
+        if (!user || !db || !storage) {
+             toast({ variant: "destructive", title: "Deletion Failed", description: "Required services unavailable." });
+             return;
+        }
 
         // If the book being deleted is currently selected, reset the view
-        if (selectedBook?.id === bookId) {
-             handleGoBackToLibrary(); // Reset view and stop speech
+        if (selectedBook?.id === bookToDelete.id) {
+             handleGoBackToLibrary();
         }
 
         try {
-            await deleteDoc(doc(db, "books", bookId));
+            // 1. Delete Firestore document
+            // Security rule `request.auth.uid == resource.data.userId` should handle authorization
+            await deleteDoc(doc(db, "books", bookToDelete.id));
             toast({
                 title: "Book Deleted",
-                description: `"${bookName}" removed from your library.`,
+                description: `"${bookToDelete.name}" removed from your library metadata.`,
             });
-            // onSnapshot will update the local state
+
+             // 2. Delete the main file from Firebase Storage
+             try {
+                 const fileRef = ref(storage, bookToDelete.storageUrl); // Use the storage URL
+                 await deleteObject(fileRef);
+                 console.log(`[Storage] Deleted file: ${bookToDelete.storageUrl}`);
+                 toast({ title: "File Deleted", description: `Main file for "${bookToDelete.name}" deleted from storage.` });
+             } catch (storageError: any) {
+                 console.error(`[Storage] Error deleting main file ${bookToDelete.storageUrl}:`, storageError);
+                  // If file not found, it might have been deleted already or URL was wrong
+                 if (storageError.code !== 'storage/object-not-found') {
+                      toast({ variant: "destructive", title: "Storage Deletion Failed", description: `Could not delete the main file for "${bookToDelete.name}". It might need manual cleanup.` });
+                 }
+             }
+
+            // 3. Delete the associated audio file from storage if it exists
+            if (bookToDelete.audioStorageUrl) {
+                 try {
+                     const audioRef = ref(storage, bookToDelete.audioStorageUrl);
+                     await deleteObject(audioRef);
+                     console.log(`[Storage] Deleted audio file: ${bookToDelete.audioStorageUrl}`);
+                     toast({ title: "Audio File Deleted", description: `Audio file for "${bookToDelete.name}" deleted from storage.` });
+                 } catch (audioStorageError: any) {
+                     console.error(`[Storage] Error deleting audio file ${bookToDelete.audioStorageUrl}:`, audioStorageError);
+                     if (audioStorageError.code !== 'storage/object-not-found') {
+                          toast({ variant: "destructive", title: "Audio Deletion Failed", description: `Could not delete the audio file for "${bookToDelete.name}".` });
+                     }
+                 }
+            }
+
+            // onSnapshot will update the local state automatically after Firestore delete
+
         } catch (error) {
             console.error("Error deleting book:", error);
             toast({
                 variant: "destructive",
                 title: "Deletion Failed",
-                description: `Could not delete "${bookName}".`,
+                description: `Could not delete "${bookToDelete.name}" metadata. Check Firestore rules or connection.`,
             });
         }
     };
@@ -188,120 +246,266 @@ function HomeContent() {
 
   const handleSelectBook = (book: BookItem) => {
     if (selectedBook?.id !== book.id) {
-      if (typeof window !== 'undefined' && window.speechSynthesis) {
-        stopSpeech(); // Stop speech if changing books
-      }
-       // Reset states only if it's a *different* book being selected for reading
-        setIsPlaying(false);
+        // Explicitly stop any ongoing speech before switching books
+        if (typeof window !== 'undefined' && window.speechSynthesis) {
+            console.log("Stopping speech due to book selection change.");
+            stopSpeech(); // Ensure stopSpeech resets state correctly
+        }
+
+        // Reset all reader-specific states
+        setIsSpeakingState(false); // Reset these immediately
         setIsPausedState(false);
         setSummaryState({ loading: false, data: null, error: null });
         setQuizState({ loading: false, data: null, error: null });
+        setAudioState({ loading: false, error: null, audioUrl: book.audioStorageUrl || null });
+        setTextExtractionState({ loading: false, error: null });
+        setUserAnswers({});
+        setQuizSubmitted(false);
+        setQuizScore(null);
+
+        // Set the new book (textContent might be loaded later)
+        setSelectedBook(book);
+        console.log("Selected new book:", book.name, "ID:", book.id);
+    } else if (viewMode !== 'reader') {
+        // If same book is clicked again but we are in library view, switch to reader
+        // No need to stop speech as it shouldn't be playing in library view
+        console.log("Re-selecting book to enter reader mode:", book.name);
+        setIsSpeakingState(false); // Reset just in case
+        setIsPausedState(false);
+        // Ensure other states are also reset if re-entering reader
+        setSummaryState({ loading: false, data: null, error: null });
+        setQuizState({ loading: false, data: null, error: null });
+        setAudioState({ loading: false, error: null, audioUrl: book.audioStorageUrl || null });
+        setTextExtractionState({ loading: false, error: null });
         setUserAnswers({});
         setQuizSubmitted(false);
         setQuizScore(null);
     }
-    setSelectedBook(book);
-    setViewMode('reader'); // Switch to reader view when a book is selected
+
+    setViewMode('reader'); // Ensure we are in reader view
   };
 
+   // Function to fetch and update text content for a book
+   const loadTextContent = useCallback(async (book: BookItem) => {
+       if (!book || book.textContent) {
+            console.log("Skipping text load: Already loaded or no book.");
+            return; // Already loaded or no book selected
+       }
+       if (book.contentType !== 'application/pdf') {
+           toast({ variant: "default", title: "Text Extraction", description: "Text extraction is currently only supported for PDF files." });
+           // Set textContent to a message indicating it's not supported
+           setSelectedBook(prev => prev ? { ...prev, textContent: `Text extraction not supported for ${book.contentType}.` } : null);
+           return;
+       }
+       if (textExtractionState.loading) {
+            console.log("Skipping text load: Already loading.");
+            return; // Already loading
+       }
+
+
+       console.log("Starting text load for book:", book.name, "ID:", book.id);
+       setTextExtractionState({ loading: true, error: null });
+       try {
+           // Fetch the file from storage URL
+           const response = await fetch(book.storageUrl);
+           if (!response.ok) {
+               throw new Error(`Failed to fetch PDF file from storage (status: ${response.status})`);
+           }
+           const blob = await response.blob();
+           const file = new File([blob], book.name, { type: book.contentType });
+
+           // Extract text using the service
+           const extractedText = await convertFileToText(file);
+           console.log("Text extraction successful, length:", extractedText.length, "Book ID:", book.id);
+
+
+            // Update the selected book state locally ONLY if the current selected book hasn't changed
+           setSelectedBook(prev => {
+               if (prev && prev.id === book.id) {
+                   console.log("Updating selected book state with text content for ID:", book.id);
+                   return { ...prev, textContent: extractedText };
+               }
+               console.log("Selected book changed during text extraction, not updating state. Current ID:", prev?.id, "Extraction ID:", book.id);
+               return prev; // Don't update if the selected book has changed
+           });
+
+
+            // Optional: Update Firestore with the extracted text for future caching
+            // Be mindful of the 1MB document limit! Only do this if text is typically small.
+            /*
+            if (db && user && book.id && extractedText.length < 800000) { // Example limit check
+                 const bookRef = doc(db, "books", book.id);
+                 try {
+                     await updateDoc(bookRef, { textContent: extractedText });
+                     console.log(`[Firestore] Cached extracted text for book ${book.id}`);
+                 } catch (updateError) {
+                      console.error(`[Firestore] Failed to cache text content for book ${book.id}:`, updateError);
+                      // Non-critical error, don't need to bother user
+                 }
+            }
+            */
+
+           setTextExtractionState({ loading: false, error: null });
+           toast({ title: "Text Ready", description: "Book content is ready for reading and processing." });
+
+       } catch (error) {
+           console.error("Error loading/extracting text content:", error);
+           const errorMsg = error instanceof Error ? error.message : "Unknown error during text extraction.";
+           setTextExtractionState({ loading: false, error: errorMsg });
+           toast({ variant: "destructive", title: "Text Extraction Failed", description: errorMsg });
+            // Update state to show error in text area
+           setSelectedBook(prev => {
+               if (prev && prev.id === book.id) {
+                   return { ...prev, textContent: `Error loading text: ${errorMsg}` };
+               }
+               return prev;
+           });
+       }
+   }, [toast, textExtractionState.loading]); // Removed user, db dependencies (should be stable)
+
+
+    // Trigger text loading when entering reader mode or when selectedBook changes
+    useEffect(() => {
+        if (viewMode === 'reader' && selectedBook && !selectedBook.textContent && !textExtractionState.loading) {
+            console.log("Effect triggered: Load text for selected book", selectedBook.name);
+            loadTextContent(selectedBook);
+        }
+         else if (viewMode === 'reader' && selectedBook && selectedBook.textContent) {
+             console.log("Effect triggered: Text content already available for", selectedBook.name);
+         }
+         else if (viewMode === 'reader' && !selectedBook) {
+             console.log("Effect triggered: In reader mode but no book selected.");
+         } else if (viewMode === 'library') {
+              console.log("Effect triggered: In library mode.");
+         }
+    }, [viewMode, selectedBook, textExtractionState.loading, loadTextContent]);
+
+
   const handleGoBackToLibrary = () => {
+     // Explicitly stop speech when going back
      if (typeof window !== 'undefined' && window.speechSynthesis) {
-        stopSpeech(); // Stop speech when leaving reader
+        console.log("Stopping speech due to navigating back to library.");
+        stopSpeech(); // Ensure stopSpeech resets state correctly
      }
-    setSelectedBook(null); // Deselect book
-    setViewMode('library'); // Switch back to library view
-     setIsPlaying(false);
+
+     // Reset all reader-specific states
+    setSelectedBook(null);
+    setViewMode('library');
+     setIsSpeakingState(false); // Reset these immediately
      setIsPausedState(false);
-     // Reset AI states when going back to library explicitly
      setSummaryState({ loading: false, data: null, error: null });
      setQuizState({ loading: false, data: null, error: null });
+     setAudioState({ loading: false, error: null, audioUrl: null });
+     setTextExtractionState({ loading: false, error: null });
      setUserAnswers({});
      setQuizSubmitted(false);
      setQuizScore(null);
+     console.log("Navigated back to library, state reset.");
   };
 
-
-  const handlePlay = () => {
-    if (!selectedBook?.content) return;
-
-     if (typeof window === 'undefined' || !window.speechSynthesis) {
-         toast({
-            variant: "destructive",
-            title: "TTS Not Supported",
-            description: "Text-to-speech is not available in your browser.",
-         });
-        return;
+  // --- TTS Controls ---
+  const handlePlayPause = () => {
+    if (!selectedBook?.textContent) {
+      toast({ variant: "default", title: "No Text", description: "Text content not loaded or available for playback." });
+      return;
+    }
+    if (typeof window === 'undefined' || !window.speechSynthesis) {
+      toast({ variant: "destructive", title: "TTS Not Supported", description: "Text-to-speech is not available in your browser." });
+      return;
     }
 
-    if (isPausedState) {
-      resumeSpeech();
-      // State update handled by onResume listener in tts.ts
-      // setIsPlaying(true); // Let callback handle this
-      // setIsPausedState(false);
-    } else if (!isPlaying) {
-       // Start speaking
-       speakText(
-         selectedBook.content,
-         () => { // onEnd callback
-           setIsPlaying(false);
-           setIsPausedState(false);
-           console.log("Playback finished naturally.");
-         },
-         (error) => { // onError callback
-           console.error("Speech error:", error);
-           setIsPlaying(false);
-           setIsPausedState(false);
-           toast({
-              variant: "destructive",
-              title: "Speech Error",
-              description: "Could not play audio. Please try again.",
-            });
-         },
-         () => { // onStart callback
-              setIsPlaying(true);
-              setIsPausedState(false);
-              console.log('Playback started via callback');
-         },
-          () => { // onPause callback
-             setIsPlaying(false);
-             setIsPausedState(true);
-             console.log('Playback paused via callback');
-          },
-          () => { // onResume callback
-              setIsPlaying(true);
-              setIsPausedState(false);
-              console.log('Playback resumed via callback');
-          }
-       );
-    }
-  };
+    const currentActiveUtteranceText = getCurrentUtteranceText(); // Text of the utterance currently managed by TTS service
+    const currentBookText = selectedBook.textContent;
 
-  const handlePause = () => {
-    if (isPlaying && typeof window !== 'undefined' && window.speechSynthesis) {
+    console.log("Play/Pause Clicked. isSpeaking:", isSpeakingState, "isPaused:", isPausedState);
+    console.log("Current Book Text (start):", currentBookText?.substring(0, 50) + "...");
+    console.log("Current Utterance Text:", currentActiveUtteranceText?.substring(0, 50) + "...");
+
+
+    if (isSpeakingState) {
+      console.log("Requesting pause.");
       pauseSpeech();
-      // State update relies on onPause listener in tts.ts
-       // setIsPlaying(false); // Let callback handle this
-       // setIsPausedState(true);
+      // State updates handled by onPause callback
+    } else {
+      // If paused AND the utterance text matches the current book text, resume
+      if (isPausedState && currentActiveUtteranceText === currentBookText) {
+        console.log("Requesting resume.");
+        resumeSpeech();
+        // State updates handled by onResume callback
+      } else {
+        // Otherwise, start speaking the *current* selected book's text from the beginning
+        console.log("Requesting play for book:", selectedBook.name);
+        speakText(
+          currentBookText, // Use the currently selected book's text
+          () => { // onEnd
+            console.log("Playback finished naturally (onEnd callback).");
+            setIsSpeakingState(false);
+            setIsPausedState(false);
+            // No need to clear currentText here, tts service handles it
+          },
+          (error) => { // onError
+            console.error("Speech error (onError callback):", error);
+            toast({ variant: "destructive", title: "Speech Error", description: `Could not play audio. Error: ${error.error || 'Unknown'}` });
+            setIsSpeakingState(false);
+            setIsPausedState(false);
+          },
+          () => { // onStart
+            console.log('Playback started (onStart callback).');
+            setIsSpeakingState(true);
+            setIsPausedState(false);
+          },
+          () => { // onPause
+            console.log('Playback paused (onPause callback).');
+            // Only update state if it was previously speaking
+            if (isSpeakingState) {
+                setIsSpeakingState(false);
+                setIsPausedState(true);
+            }
+          },
+          () => { // onResume
+            console.log('Playback resumed (onResume callback).');
+             // Only update state if it was previously paused
+            if (isPausedState) {
+                setIsSpeakingState(true);
+                setIsPausedState(false);
+            }
+          }
+        );
+      }
     }
   };
 
-  const handleStop = () => {
-     if (typeof window !== 'undefined' && window.speechSynthesis) {
-        stopSpeech();
-        // State update relies on onEnd listener triggered by cancel()
-        // setIsPlaying(false); // Let callback handle this
-        // setIsPausedState(false);
-     }
+   const handleStop = () => {
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+          console.log("Stop button clicked. Requesting stop.");
+          stopSpeech(); // This should trigger onend eventually
+          // Immediately update UI state for responsiveness
+          setIsSpeakingState(false);
+          setIsPausedState(false);
+          // Note: The onEnd callback in speakText handles the final state reset
+      }
   };
+
+
+  // Update UI state based on TTS events (handled by callbacks passed to speakText)
+  // These are now mostly for logging or specific UI tweaks if needed outside the buttons.
 
  // --- Genkit Flow Handlers ---
 
  const handleSummarize = async () => {
-    if (!selectedBook?.content) return;
+    if (!selectedBook?.textContent || textExtractionState.loading || textExtractionState.error) {
+        toast({ variant: "default", title: "No Text Available", description: "Load or finish loading text content before generating summary." });
+        return;
+    }
+    if (!user) { // Check for user authentication
+        toast({ variant: "destructive", title: "Authentication Required", description: "Please log in to use AI features." });
+        return;
+    }
+
 
     setSummaryState({ loading: true, data: null, error: null });
     try {
-      const result = await summarizeAudiobookChapter({ chapterText: selectedBook.content });
+      const result = await summarizeAudiobookChapter({ chapterText: selectedBook.textContent });
       setSummaryState({ loading: false, data: result, error: null });
       toast({
         title: "Summary Generated",
@@ -311,501 +515,489 @@ function HomeContent() {
       console.error("Error generating summary (client-side):", error);
       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
       let userFriendlyMessage = `Failed to generate summary. ${errorMessage}`;
-
-      // Provide more specific hints for common issues (already handled in summarize flow)
-       // Check if the server provided a more specific message
-      if (errorMessage.includes('API key not valid') || errorMessage.includes('server error') || errorMessage.includes('Failed to fetch') || errorMessage.includes('network error') || errorMessage.includes('Invalid input')) {
-          userFriendlyMessage = errorMessage; // Use the specific error from the server
+       if (errorMessage.includes('API key not valid') ||
+           errorMessage.includes('AI service not initialized') ||
+           errorMessage.includes('server error') ||
+           errorMessage.includes('Failed to fetch') ||
+           errorMessage.includes('network error') ||
+           errorMessage.includes('Invalid input') ||
+           errorMessage.includes('Billing account not configured')) {
+          userFriendlyMessage = errorMessage;
       } else {
-          // Generic fallback if the server error wasn't specific enough or it was a client-side issue
-          userFriendlyMessage = "Failed to generate summary due to an unexpected error. Please check the console for details.";
+          userFriendlyMessage = "Failed to generate summary due to an unexpected error.";
       }
-
-
       setSummaryState({ loading: false, data: null, error: userFriendlyMessage });
-      toast({
-        variant: "destructive",
-        title: "Summarization Failed",
-        description: userFriendlyMessage,
-      });
+      toast({ variant: "destructive", title: "Summarization Failed", description: userFriendlyMessage });
     }
   };
 
 
   const handleGenerateQuiz = async () => {
-    if (!selectedBook?.content) return;
+     if (!selectedBook?.textContent || textExtractionState.loading || textExtractionState.error) {
+        toast({ variant: "default", title: "No Text Available", description: "Load or finish loading text content before generating quiz." });
+        return;
+    }
+     if (!user) { // Check for user authentication
+        toast({ variant: "destructive", title: "Authentication Required", description: "Please log in to use AI features." });
+        return;
+    }
+
 
     setQuizState({ loading: true, data: null, error: null });
-    setUserAnswers({}); // Reset answers
-    setQuizSubmitted(false); // Reset submission status
-    setQuizScore(null); // Reset score
+    setUserAnswers({});
+    setQuizSubmitted(false);
+    setQuizScore(null);
     try {
-        // Define input for the flow
-        const input: GenerateQuizQuestionsInput = {
-            text: selectedBook.content,
-            numQuestions: 5 // Generate 5 questions
-        };
-      console.log("Requesting quiz generation with input:", input);
-      const result = await generateQuizQuestions(input); // Pass structured input
-      console.log("Quiz generation result:", result);
-      setQuizState({ loading: false, data: result, error: null });
-       toast({
-         title: "Quiz Generated",
-         description: "Quiz questions created successfully.",
-       });
-    } catch (error: any) { // Catch 'any' to access digest if present
+        const input: GenerateQuizQuestionsInput = { text: selectedBook.textContent, numQuestions: 5 };
+        console.log("Requesting quiz generation with input length:", input.text.length);
+        const result = await generateQuizQuestions(input);
+        console.log("Quiz generation result:", result);
+        setQuizState({ loading: false, data: result, error: null });
+        toast({ title: "Quiz Generated", description: "Quiz questions created successfully." });
+    } catch (error: any) {
         console.error("Error generating quiz (client-side catch):", error);
         const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
-        let userFriendlyMessage = `Failed to generate quiz: ${errorMessage}`; // Default to the raw error message
+        let userFriendlyMessage = `Failed to generate quiz: ${errorMessage}`;
 
-        // Check if the error message provides specific details from the server
         if (errorMessage.includes('API key not valid') ||
+            errorMessage.includes('AI service not initialized') ||
             errorMessage.includes('invalid quiz data format') ||
             errorMessage.includes('Network error:') ||
             errorMessage.includes('rate limit exceeded') ||
-            errorMessage.includes('Invalid input')) {
-            userFriendlyMessage = errorMessage; // Use the specific error message from the flow
+            errorMessage.includes('Invalid input') ||
+            errorMessage.includes('Billing account not configured')) {
+            userFriendlyMessage = errorMessage;
         } else if (errorMessage.includes('Failed to fetch') || errorMessage.includes('server error') || errorMessage.includes('network error')) {
-             // More generic network/server error if specific details aren't available
-             userFriendlyMessage = "Failed to generate quiz: Could not reach the AI server. Ensure the Genkit development server ('npm run genkit:dev') is running and there are no network issues.";
+             userFriendlyMessage = "Failed to generate quiz: Could not reach the AI server.";
         } else if (error?.digest) {
-             // If there's a digest, mention it for server-side debugging
-             userFriendlyMessage = `Failed to generate quiz due to a server component error (Digest: ${error.digest}). Check server logs for details.`;
+             userFriendlyMessage = `Failed to generate quiz due to a server component error (Digest: ${error.digest}). Check server logs.`;
              console.error("Server Component Error Digest:", error.digest);
-        }
-        else {
-             // Fallback for truly unexpected errors
-             userFriendlyMessage = "Failed to generate quiz due to an unexpected error. Please check the application logs.";
+        } else {
+             userFriendlyMessage = "Failed to generate quiz due to an unexpected error.";
         }
 
-
-      setQuizState({ loading: false, data: null, error: userFriendlyMessage });
-      toast({
-        variant: "destructive",
-        title: "Quiz Generation Failed",
-        description: userFriendlyMessage,
-      });
+        setQuizState({ loading: false, data: null, error: userFriendlyMessage });
+        toast({ variant: "destructive", title: "Quiz Generation Failed", description: userFriendlyMessage });
     }
   };
+
+ // --- Audio Generation Handler ---
+const handleGenerateAudio = async () => {
+     if (!selectedBook?.textContent || textExtractionState.loading || textExtractionState.error) {
+        toast({ variant: "default", title: "No Text Available", description: "Load or finish loading text content before generating audio file." });
+        return;
+    }
+    if (!selectedBook.id || !user || !db || !storage) {
+        toast({ variant: "destructive", title: "Error", description: "Required services unavailable for audio generation." });
+        return;
+    }
+
+
+    setAudioState({ loading: true, error: null, audioUrl: null });
+    toast({ title: "Starting Audio Generation", description: "Preparing audio file..." });
+
+    try {
+        // Placeholder for actual server-side audio file generation
+        // This should ideally be a Cloud Function or a dedicated backend service
+        // that takes the text, uses a server-side TTS (like Google Cloud TTS),
+        // uploads the result to storage, and returns the URL.
+        console.log(`Simulating server-side audio generation for book ID: ${selectedBook.id}`);
+        await new Promise(resolve => setTimeout(resolve, 4000)); // Simulate generation time
+
+        // Assume server generates and uploads to a path like: audiobooks_generated/{userId}/{bookId}.mp3
+        // IMPORTANT: Ensure storage rules allow writing to this path by authenticated users.
+        const generatedAudioFileName = `${selectedBook.id}_audio.mp3`;
+        const audioStoragePath = `audiobooks_generated/${user.uid}/${generatedAudioFileName}`;
+
+        // Simulate getting a download URL (server would return this after upload)
+        // For simulation, we create a plausible storage URL structure.
+        const simulatedAudioUrl = `https://firebasestorage.googleapis.com/v0/b/${process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET}/o/${encodeURIComponent(audioStoragePath)}?alt=media`;
+        console.log(`Simulated audio URL: ${simulatedAudioUrl}`);
+
+        // Update Firestore with the new audio storage URL
+        const bookRef = doc(db, "books", selectedBook.id);
+        // Client-side ownership check (redundant if rules are correct, but good practice)
+        if (selectedBook.userId !== user.uid) {
+            throw new Error("Permission denied: You do not own this book.");
+        }
+
+        try {
+            await updateDoc(bookRef, { audioStorageUrl: simulatedAudioUrl });
+            console.log(`[Firestore] Updated audioStorageUrl for book ${selectedBook.id}`);
+
+            // Update local state immediately for responsiveness
+            setSelectedBook(prev => {
+                if (prev && prev.id === selectedBook.id) {
+                    return { ...prev, audioStorageUrl: simulatedAudioUrl };
+                }
+                return prev; // Don't update if selection changed
+            });
+
+            setAudioState({ loading: false, error: null, audioUrl: simulatedAudioUrl });
+            toast({
+                title: "Audio Generated (Simulation)",
+                description: `Audio file reference saved.`,
+            });
+
+        } catch (updateError) {
+            console.error("Firestore update failed for audio URL:", updateError);
+             if (updateError instanceof Error && updateError.message.includes('permission-denied')) {
+                  throw new Error("Permission denied: Failed to update book data. Check Firestore rules.");
+             }
+            throw new Error("Failed to save audio file reference to the database.");
+        }
+
+    } catch (error) {
+        console.error("Error generating audio (client-side simulation):", error);
+        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred during audio generation simulation.";
+        setAudioState({ loading: false, error: errorMessage, audioUrl: null });
+        toast({
+            variant: "destructive",
+            title: "Audio Generation Failed",
+            description: errorMessage,
+        });
+    }
+};
+
 
   // --- Quiz Interaction Handlers ---
 
   const handleAnswerChange = (questionIndex: number, selectedOption: string) => {
-    setUserAnswers(prev => ({
-      ...prev,
-      [questionIndex]: selectedOption
-    }));
+    setUserAnswers(prev => ({ ...prev, [questionIndex]: selectedOption }));
   };
 
   const handleQuizSubmit = () => {
     if (!quizState.data) return;
-
     let correctCount = 0;
     quizState.data.questions.forEach((q, index) => {
-      if (userAnswers[index] === q.answer) {
-        correctCount++;
-      }
+      if (userAnswers[index] === q.answer) correctCount++;
     });
-
     const score = (correctCount / quizState.data.questions.length) * 100;
     setQuizScore(score);
     setQuizSubmitted(true);
-
-    toast({
-      title: "Quiz Submitted",
-      description: `You scored ${score.toFixed(0)}% (${correctCount} out of ${quizState.data.questions.length}).`,
-    });
+    toast({ title: "Quiz Submitted", description: `You scored ${score.toFixed(0)}% (${correctCount}/${quizState.data.questions.length}).` });
   };
 
   // --- Logout Handler ---
   const handleLogout = async () => {
     try {
+        if (!auth) {
+            console.error("Logout failed: Auth instance is not available.");
+            toast({ variant: 'destructive', title: 'Logout Failed', description: 'Authentication service unavailable.' });
+            return;
+        }
         await signOut(auth);
         toast({ title: 'Logged Out', description: 'You have been logged out successfully.' });
-        // AuthProvider will handle redirect via the useEffect hook
-        setSelectedBook(null); // Clear selected book on logout
-        setViewMode('library'); // Go to library view
-        // Clear other states if necessary
-        setBooks([]);
-        setSummaryState({ loading: false, data: null, error: null });
-        setQuizState({ loading: false, data: null, error: null });
-        setUserAnswers({});
-        setQuizSubmitted(false);
-        setQuizScore(null);
-        setIsPlaying(false);
-        setIsPausedState(false);
+        // Reset all application state on logout
+        handleGoBackToLibrary(); // Reset reader view first
+        setBooks([]); // Clear books list
     } catch (error) {
         console.error("Logout failed:", error);
-        toast({ variant: 'destructive', title: 'Logout Failed', description: 'Could not log you out. Please try again.' });
+        toast({ variant: 'destructive', title: 'Logout Failed', description: 'Could not log you out.' });
     }
   };
 
 
-  // Effect to handle component unmount or view change
-  useEffect(() => {
-    return () => {
-      // Only stop speech if TTS is available
-      if (typeof window !== 'undefined' && window.speechSynthesis) {
-          stopSpeech();
-      }
-    };
-  }, [viewMode]); // Stop speech if view changes (and potentially on unmount)
+   // Cleanup TTS on component unmount or when viewMode changes
+   useEffect(() => {
+      return () => {
+         if (typeof window !== 'undefined' && window.speechSynthesis) {
+            console.log("Stopping speech due to component unmount or view change.");
+            stopSpeech();
+         }
+      };
+   }, [viewMode]); // Re-run cleanup if viewMode changes
 
-  useEffect(() => {
-      setMounted(true);
-  }, []);
+  useEffect(() => { setMounted(true); }, []);
 
-
-  // Show loading indicator while auth is loading or user is null (before redirect)
-  if (authLoading || !user) {
-      // You can return a full-page loader here if preferred
-      return (
-           <div className="flex items-center justify-center min-h-screen">
-               <Loader2 className="h-16 w-16 animate-spin text-primary" />
-           </div>
-      );
+  if (authLoading) {
+      return <div className="flex items-center justify-center min-h-screen"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
   }
-
-  // Don't render the main UI until mounted to avoid hydration mismatches related to isMobile
-  if (!mounted || isMobile === undefined) {
-     // Or a loading indicator matching the theme
-     return (
-          <div className="flex items-center justify-center min-h-screen">
-              <Loader2 className="h-16 w-16 animate-spin text-primary" />
-          </div>
-     );
+  if (!mounted || isMobile === undefined || !user) {
+     // Show loading or placeholder during initial SSR/hydration or if not logged in
+     return <div className="flex items-center justify-center min-h-screen"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
   }
 
 
   return (
     <>
       {/* Sidebar */}
-       <Sidebar collapsible="icon">
-         <SidebarHeader className="items-center border-b border-sidebar-border">
-           <div className="flex items-center gap-2">
-              <Book className="h-6 w-6 text-primary" />
-              <h1 className="text-xl font-semibold text-foreground group-data-[collapsible=icon]:hidden">AudioBook Buddy</h1>
-           </div>
-            {/* Only show trigger on mobile */}
-           {mounted && isMobile && (
-              <div className="ml-auto">
-                <SidebarTrigger />
-              </div>
-           )}
-         </SidebarHeader>
-         <SidebarContent className="p-0 flex flex-col">
-             {/* Bookshelf */}
-             <div className="p-4 flex-grow overflow-hidden">
-                 <p className="mb-2 font-medium text-foreground group-data-[collapsible=icon]:hidden">Your Bookshelf</p>
-                  {booksLoading ? (
-                    <div className="mt-4 space-y-2 group-data-[collapsible=icon]:hidden">
-                         {/* Skeleton Loader for books */}
-                         {[...Array(3)].map((_, i) => (
-                             <div key={i} className="flex items-center space-x-2 p-2 rounded bg-muted/50 animate-pulse">
-                                 <Book className="h-4 w-4 text-muted-foreground/50" />
-                                 <div className="h-4 bg-muted-foreground/30 rounded w-3/4"></div>
-                             </div>
-                         ))}
-                    </div>
-                  ) : books.length === 0 ? (
-                      <div className="mt-4 text-center text-sm text-muted-foreground group-data-[collapsible=icon]:hidden">
-                         Upload a file to start.
-                      </div>
-                  ) : (
-                      <ScrollArea className="h-[calc(100vh-280px)] group-data-[collapsible=icon]:h-auto"> {/* Adjust height */}
-                          <ul className="space-y-1 pr-4 group-data-[collapsible=icon]:pr-0">
-                          {books.map((book) => (
-                            <li key={book.id} className="group/book-item relative">
-                              <Button
-                                variant={selectedBook?.id === book.id && viewMode === 'reader' ? "secondary" : "ghost"}
-                                className={`w-full justify-start text-left h-auto py-2 px-2 ${selectedBook?.id === book.id && viewMode === 'reader' ? 'font-semibold' : ''} group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:size-10`}
-                                onClick={() => handleSelectBook(book)}
-                                title={book.name} // Show full name on hover
-                              >
-                                <Book className="h-4 w-4 mr-2 flex-shrink-0 group-data-[collapsible=icon]:mr-0" />
-                                <span className="truncate flex-grow group-data-[collapsible=icon]:hidden">{book.name}</span>
-                              </Button>
-                               {/* Delete Button - Show on hover (desktop) or always (mobile, if needed) */}
-                                <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="absolute right-0 top-1/2 -translate-y-1/2 mr-1 h-7 w-7 text-muted-foreground hover:text-destructive opacity-0 group-hover/book-item:opacity-100 focus:opacity-100 group-data-[collapsible=icon]:hidden"
-                                            aria-label={`Delete book ${book.name}`}
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            This action cannot be undone. This will permanently delete "{book.name}" from your library.
-                                        </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                        <AlertDialogAction onClick={() => deleteBook(book.id, book.name)} className={buttonVariants({ variant: "destructive" })}>
-                                            Delete
-                                        </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
+       <SidebarProvider>
+          <Sidebar collapsible="icon">
+             <SidebarHeader className="items-center border-b border-sidebar-border">
+               <div className="flex items-center gap-2">
+                  <AudioLines className="h-6 w-6 text-primary" />
+                  <h1 className="text-xl font-semibold text-foreground group-data-[collapsible=icon]:hidden">AudioBook Buddy</h1>
+               </div>
+               {mounted && isMobile && <div className="ml-auto"><SidebarTrigger /></div>}
+             </SidebarHeader>
+             <SidebarContent className="p-0 flex flex-col">
+                 <div className="p-4 flex-grow overflow-hidden">
+                     <p className="mb-2 font-medium text-foreground group-data-[collapsible=icon]:hidden">Your Library</p>
+                      {booksLoading ? (
+                        <div className="mt-4 space-y-2 group-data-[collapsible=icon]:hidden">
+                             {[...Array(3)].map((_, i) => (
+                                 <div key={i} className="flex items-center space-x-2 p-2 rounded bg-muted/50 animate-pulse">
+                                     <Book className="h-4 w-4 text-muted-foreground/50" />
+                                     <div className="h-4 bg-muted-foreground/30 rounded w-3/4"></div>
+                                 </div>
+                             ))}
+                        </div>
+                      ) : books.length === 0 ? (
+                          <div className="mt-4 text-center text-sm text-muted-foreground group-data-[collapsible=icon]:hidden">Upload a PDF file.</div>
+                      ) : (
+                          <ScrollArea className="h-[calc(100vh-280px)] group-data-[collapsible=icon]:h-auto">
+                              <ul className="space-y-1 pr-4 group-data-[collapsible=icon]:pr-0">
+                              {books.map((book) => (
+                                <li key={book.id} className="group/book-item relative">
+                                  <Button
+                                    variant={selectedBook?.id === book.id && viewMode === 'reader' ? "secondary" : "ghost"}
+                                    className={cn(
+                                        `w-full justify-start text-left h-auto py-2 px-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:size-10`,
+                                        selectedBook?.id === book.id && viewMode === 'reader' && 'font-semibold'
+                                    )}
+                                    onClick={() => handleSelectBook(book)}
+                                    title={book.name}
+                                  >
+                                    <Book className="h-4 w-4 mr-2 flex-shrink-0 group-data-[collapsible=icon]:mr-0" />
+                                    <span className="truncate flex-grow ml-1 group-data-[collapsible=icon]:hidden">{book.name}</span>
+                                    {book.audioStorageUrl && ( // Check for generated audio URL
+                                         <Headphones className="h-3 w-3 ml-auto text-muted-foreground flex-shrink-0 group-data-[collapsible=icon]:hidden" title="Generated audio available"/>
+                                    )}
+                                  </Button>
+                                   <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="absolute right-0 top-1/2 -translate-y-1/2 mr-1 h-7 w-7 text-muted-foreground hover:text-destructive opacity-0 group-hover/book-item:opacity-100 focus:opacity-100 group-data-[collapsible=icon]:hidden"
+                                                aria-label={`Delete book ${book.name}`}
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                This action cannot be undone. This will permanently delete "{book.name}" {book.audioStorageUrl ? 'and its associated audio file ' : ''}from Firestore and Storage.
+                                            </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                            <AlertDialogAction onClick={() => deleteBook(book)} className={buttonVariants({ variant: "destructive" })}>
+                                                Delete
+                                            </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
 
-                            </li>
-                          ))}
-                        </ul>
-                      </ScrollArea>
-                  )}
-            </div>
+                                </li>
+                              ))}
+                            </ul>
+                          </ScrollArea>
+                      )}
+                </div>
 
-             {/* File Upload - Moved below bookshelf */}
-             <div className="border-t border-sidebar-border p-4 mt-auto group-data-[collapsible=icon]:p-2">
-                <FileUpload onUploadSuccess={addBook} />
-            </div>
+                 <div className="border-t border-sidebar-border p-4 mt-auto group-data-[collapsible=icon]:p-2">
+                     {/* Pass the updated addBook function */}
+                    <FileUpload onUploadSuccess={addBook} />
+                </div>
 
-              {/* User Info & Logout */}
-             <div className="border-t border-sidebar-border p-4 group-data-[collapsible=icon]:p-2">
-                 <div className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center">
-                     {/* Placeholder for Avatar - can add later */}
-                     {/* <Avatar className="h-8 w-8 group-data-[collapsible=icon]:h-6 group-data-[collapsible=icon]:w-6">
-                         <AvatarFallback>{user?.email?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
-                     </Avatar> */}
-                     <div className="flex-grow truncate group-data-[collapsible=icon]:hidden">
-                        <p className="text-sm font-medium text-foreground truncate" title={user?.email || 'User'}>{user?.email || 'User'}</p>
-                        {/* <p className="text-xs text-muted-foreground">User ID: {user?.uid}</p> */}
-                    </div>
-                     <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={handleLogout}
-                        className="ml-auto group-data-[collapsible=icon]:ml-0"
-                        title="Logout"
-                      >
-                        <LogOut className="h-4 w-4" />
-                     </Button>
+                 <div className="border-t border-sidebar-border p-4 group-data-[collapsible=icon]:p-2">
+                     <div className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center">
+                         <div className="flex-grow truncate group-data-[collapsible=icon]:hidden">
+                            <p className="text-sm font-medium text-foreground truncate" title={user?.email || 'User'}>{user?.email || 'User'}</p>
+                        </div>
+                         <Button variant="ghost" size="icon" onClick={handleLogout} className="ml-auto group-data-[collapsible=icon]:ml-0" title="Logout">
+                            <LogOut className="h-4 w-4" />
+                         </Button>
+                     </div>
                  </div>
-             </div>
-         </SidebarContent>
-         {/* <SidebarFooter className="border-t border-sidebar-border p-4">
-            <FileUpload onUploadSuccess={addBook} />
-         </SidebarFooter> */}
-       </Sidebar>
+             </SidebarContent>
+           </Sidebar>
+      </SidebarProvider>
 
       {/* Main Content Area */}
       <SidebarInset className="flex flex-col">
-         {/* Mobile Header */}
          {mounted && isMobile && (
              <header className="flex h-14 items-center gap-4 border-b bg-card px-4 sticky top-0 z-10">
                 {viewMode === 'reader' ? (
-                     <Button variant="ghost" size="icon" onClick={handleGoBackToLibrary} aria-label="Back to Library">
-                         <ArrowLeft className="h-5 w-5" />
-                     </Button>
-                 ) : (
-                      mounted && <SidebarTrigger /> // Only show trigger if mounted
-                 )}
+                     <Button variant="ghost" size="icon" onClick={handleGoBackToLibrary} aria-label="Back to Library"><ArrowLeft className="h-5 w-5" /></Button>
+                 ) : ( mounted && <SidebarTrigger /> )}
                 <div className="flex items-center gap-2 flex-grow justify-center">
-                   <Book className="h-6 w-6 text-primary" />
+                   <AudioLines className="h-6 w-6 text-primary" />
                    <h1 className="text-xl font-semibold text-foreground">AudioBook Buddy</h1>
                 </div>
-                 {/* Add a spacer or adjust layout if Logout needs to be here */}
-                  <div className="w-8"> {/* Placeholder for alignment if needed */}
-                      {!user && ( // Show login icon if no user (shouldn't happen due to redirect, but for safety)
-                          <Button variant="ghost" size="icon" onClick={() => router.push('/auth')} title="Login">
-                             <LogIn className="h-5 w-5" />
-                          </Button>
-                       )}
-                   </div>
-
+                  <div className="w-8">{!user && !authLoading && (<Button variant="ghost" size="icon" onClick={() => router.push('/auth')} title="Login"><LogIn className="h-5 w-5" /></Button>)}</div>
              </header>
          )}
         <main className="flex flex-1 flex-col items-stretch p-4 md:p-6 overflow-hidden">
-          {/* Conditional Rendering based on viewMode */}
           {viewMode === 'library' && (
              <div className="flex flex-1 flex-col items-center justify-center text-center">
-                <Book size={48} className="text-muted-foreground mb-4" />
+                 <AudioLines size={48} className="text-muted-foreground mb-4" />
                 <h2 className="text-2xl font-semibold mb-2">Welcome, {user?.email || 'User'}!</h2>
                 <p className="text-muted-foreground mb-6 max-w-md">
-                  {books.length > 0
-                    ? "Select a book from your bookshelf to start reading and get AI insights."
-                    : "Upload a PDF or ePUB file using the button in the sidebar to begin."}
+                  {books.length > 0 ? "Select a book from your library." : "Upload a PDF file to begin."}
                 </p>
-                 {books.length === 0 && !booksLoading && ( // Show upload hint if library is empty and not loading
-                     <p className="text-sm text-primary animate-pulse">Use the 'Upload File' button in the sidebar.</p>
-                 )}
+                 {books.length === 0 && !booksLoading && (<p className="text-sm text-primary animate-pulse">Use 'Upload File' in the sidebar.</p>)}
              </div>
           )}
 
           {viewMode === 'reader' && selectedBook && (
             <div className="flex flex-1 flex-col lg:flex-row gap-4 md:gap-6 max-w-7xl mx-auto w-full overflow-hidden">
-               {/* Back Button (Desktop) */}
                 {mounted && !isMobile && (
                     <div className="absolute top-4 left-4 md:top-6 md:left-6 z-20">
-                         <Button variant="outline" size="icon" onClick={handleGoBackToLibrary} aria-label="Back to Library">
-                             <ArrowLeft className="h-5 w-5" />
-                         </Button>
+                         <Button variant="outline" size="icon" onClick={handleGoBackToLibrary} aria-label="Back to Library"><ArrowLeft className="h-5 w-5" /></Button>
                      </div>
                  )}
 
               {/* Book Content Area */}
-              <Card className="flex flex-col flex-1 lg:w-2/3 shadow-md relative pt-10 md:pt-0"> {/* Add padding top for mobile header/button space */}
-                 <CardHeader className="border-b pt-4 pb-4 md:pt-6 md:pb-6 sticky top-0 bg-card z-10"> {/* Make header sticky */}
-                     <CardTitle className="truncate pr-10">{selectedBook.name}</CardTitle> {/* Add padding for potential back button */}
+              <Card className="flex flex-col flex-1 lg:w-2/3 shadow-md relative pt-10 md:pt-0">
+                 <CardHeader className="border-b pt-4 pb-4 md:pt-6 md:pb-6 sticky top-0 bg-card z-10">
+                     <CardTitle className="truncate pr-10">{selectedBook.name}</CardTitle>
                  </CardHeader>
-                 <CardContent className="flex-1 p-4 overflow-auto"> {/* Changed overflow-hidden to overflow-auto */}
-                  {/* <ScrollArea className="h-full pr-4"> */} {/* Remove ScrollArea if CardContent handles scroll */}
-                    <p className="text-sm text-foreground whitespace-pre-wrap break-words"> {/* Added break-words */}
-                      {selectedBook.content || "No content available."}
-                    </p>
-                  {/* </ScrollArea> */}
+                 <CardContent className="flex-1 p-4 overflow-auto">
+                    {/* Text Content Display */}
+                     {textExtractionState.loading && (
+                         <div className="flex items-center justify-center h-full">
+                             <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                             <p className="ml-2 text-muted-foreground">Loading text...</p>
+                         </div>
+                     )}
+                     {textExtractionState.error && (
+                         <p className="text-sm text-destructive p-4 text-center">{textExtractionState.error}</p>
+                     )}
+                     {!textExtractionState.loading && !textExtractionState.error && selectedBook.textContent && (
+                         <p className="text-sm text-foreground whitespace-pre-wrap break-words">
+                             {selectedBook.textContent}
+                         </p>
+                     )}
+                      {!textExtractionState.loading && !textExtractionState.error && !selectedBook.textContent && selectedBook.contentType !== 'application/pdf' && (
+                          <p className="text-sm text-muted-foreground p-4 text-center">Text extraction is not supported for this file type ({selectedBook.contentType}).</p>
+                      )}
+                       {!textExtractionState.loading && !textExtractionState.error && !selectedBook.textContent && selectedBook.contentType === 'application/pdf' && (
+                          <p className="text-sm text-muted-foreground p-4 text-center">Could not load text content.</p> // Fallback message
+                      )}
                 </CardContent>
-                <CardFooter className="border-t p-4 flex items-center justify-center gap-4 bg-muted/50 sticky bottom-0 z-10">
-                  <Button
-                    onClick={isPlaying ? handlePause : handlePlay}
-                    size="icon"
-                    variant="outline"
-                    disabled={!selectedBook?.content}
-                    aria-label={isPlaying ? "Pause" : "Play"}
-                  >
-                    {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
-                  </Button>
-                  <Button
-                    onClick={handleStop}
-                    size="icon"
-                    variant="outline"
-                    disabled={!isPlaying && !isPausedState}
-                    aria-label="Stop"
-                  >
-                    <Square className="h-5 w-5" />
-                  </Button>
-                </CardFooter>
               </Card>
 
-              {/* AI Features Area */}
+              {/* AI Features & Audio Area */}
               <Card className="flex flex-col lg:w-1/3 shadow-md overflow-hidden">
-                <CardHeader className="border-b sticky top-0 bg-card z-10">
-                  <CardTitle>AI Insights</CardTitle>
-                </CardHeader>
-                <CardContent className="flex-1 p-4 overflow-auto"> {/* Changed overflow-hidden to overflow-auto */}
-                  {/* <ScrollArea className="h-full pr-4"> */} {/* Remove ScrollArea */}
-                    <Accordion type="single" collapsible className="w-full" defaultValue="summary">
+                <CardHeader className="border-b sticky top-0 bg-card z-10"><CardTitle>Processing & Insights</CardTitle></CardHeader>
+                <CardContent className="flex-1 p-4 overflow-auto">
+                    <Accordion type="single" collapsible className="w-full" defaultValue="audio">
+
+                      {/* Audio Playback Section (Browser TTS) */}
+                      <AccordionItem value="audio">
+                          <AccordionTrigger><div className="flex items-center gap-2 w-full"><Headphones className="h-5 w-5 flex-shrink-0" /><span className="flex-grow text-left">Listen (Browser TTS)</span></div></AccordionTrigger>
+                          <AccordionContent>
+                              <div className="flex items-center justify-center gap-4 py-4">
+                                  <Button onClick={handlePlayPause} size="icon" variant="outline" disabled={!selectedBook?.textContent || textExtractionState.loading || textExtractionState.error} aria-label={isSpeakingState ? "Pause" : "Play"}>
+                                      {isSpeakingState ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+                                  </Button>
+                                  <Button onClick={handleStop} size="icon" variant="outline" disabled={!isSpeakingState && !isPausedState} aria-label="Stop"><Square className="h-5 w-5" /></Button>
+                                  {/* Add Speed Controls if desired */}
+                                  {/* <select onChange={handleSpeedChange} defaultValue="1">...</select> */}
+                              </div>
+                               {(!selectedBook?.textContent || textExtractionState.error) && !textExtractionState.loading && <p className="text-sm text-muted-foreground text-center">Load text content first.</p>}
+                               {textExtractionState.loading && <p className="text-sm text-muted-foreground text-center">Loading text...</p>}
+                               { typeof window !== 'undefined' && !window.speechSynthesis && (<p className="text-sm text-destructive text-center mt-2">TTS not supported.</p>)}
+                          </AccordionContent>
+                      </AccordionItem>
+
+                      {/* Audio Generation Section */}
+                      <AccordionItem value="generate-audio">
+                        <AccordionTrigger>
+                           <div className="flex items-center gap-2 w-full">
+                             <AudioLines className="h-5 w-5 flex-shrink-0" />
+                             <span className="flex-grow text-left">Generate Audio File</span>
+                              {audioState.loading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground ml-auto" />}
+                           </div>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                           {audioState.error && <p className="text-sm text-destructive break-words">{audioState.error}</p>}
+                           {selectedBook.audioStorageUrl && !audioState.loading && ( // Check for generated URL
+                                <div className="text-sm text-center py-2 space-y-2">
+                                    <p>Audio file generated.</p>
+                                     {/* Provide a link or embedded player */}
+                                     <audio controls src={selectedBook.audioStorageUrl} className="w-full mt-2">
+                                         Your browser does not support the audio element.
+                                         <a href={selectedBook.audioStorageUrl} target="_blank" rel="noopener noreferrer">Download Audio</a>
+                                     </audio>
+                                    <p className="text-xs text-muted-foreground mt-1">(File stored in Firebase Storage)</p>
+                                </div>
+                           )}
+                           {!audioState.loading && (
+                             <Button onClick={handleGenerateAudio} size="sm" className="w-full mt-2" disabled={!selectedBook?.textContent || audioState.loading || textExtractionState.loading || !!textExtractionState.error}>
+                               {audioState.loading ? 'Generating...' : (selectedBook.audioStorageUrl ? 'Regenerate Audio File' : 'Generate Audio File')}
+                             </Button>
+                           )}
+                            <p className="text-xs text-muted-foreground mt-2 text-center">Note: Generates an audio file via server (simulation). Requires loaded text content.</p>
+                        </AccordionContent>
+                      </AccordionItem>
+
                       {/* Summary Section */}
                       <AccordionItem value="summary">
-                        <AccordionTrigger>
-                          <div className="flex items-center gap-2 w-full">
-                            <Lightbulb className="h-5 w-5 flex-shrink-0" />
-                            <span className="flex-grow text-left">Chapter Summary</span>
-                            {summaryState.loading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground ml-auto" />}
-                          </div>
-                        </AccordionTrigger>
+                        <AccordionTrigger><div className="flex items-center gap-2 w-full"><Lightbulb className="h-5 w-5 flex-shrink-0" /><span className="flex-grow text-left">Chapter Summary</span>{summaryState.loading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground ml-auto" />}</div></AccordionTrigger>
                         <AccordionContent>
                           {summaryState.error && <p className="text-sm text-destructive">{summaryState.error}</p>}
                           {summaryState.data && <p className="text-sm">{summaryState.data.summary}</p>}
-                          {!summaryState.loading && !summaryState.data && !summaryState.error && (
-                            <Button onClick={handleSummarize} size="sm" className="w-full" disabled={!selectedBook?.content}>
-                              Generate Summary
-                            </Button>
-                          )}
-                           {summaryState.data && !summaryState.loading && (
-                              <Button onClick={handleSummarize} size="sm" variant="outline" className="w-full mt-2" disabled={!selectedBook?.content}>
-                                Regenerate Summary
-                              </Button>
-                            )}
+                          <Button onClick={handleSummarize} size="sm" className="w-full mt-2" disabled={!selectedBook?.textContent || summaryState.loading || textExtractionState.loading || !!textExtractionState.error}>
+                            {summaryState.loading ? 'Generating...' : (summaryState.data ? 'Regenerate' : 'Generate Summary')}
+                          </Button>
+                           {summaryState.error && summaryState.error.includes('AI service not initialized') && (<p className="text-xs text-destructive mt-2 text-center">{summaryState.error}</p>)}
                         </AccordionContent>
                       </AccordionItem>
 
                       {/* Quiz Section */}
                       <AccordionItem value="quiz">
-                        <AccordionTrigger>
-                           <div className="flex items-center gap-2 w-full">
-                            <HelpCircle className="h-5 w-5 flex-shrink-0" />
-                            <span className="flex-grow text-left">Quick Quiz</span>
-                            {quizState.loading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground ml-auto" />}
-                          </div>
-                        </AccordionTrigger>
+                        <AccordionTrigger><div className="flex items-center gap-2 w-full"><HelpCircle className="h-5 w-5 flex-shrink-0" /><span className="flex-grow text-left">Quick Quiz</span>{quizState.loading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground ml-auto" />}</div></AccordionTrigger>
                         <AccordionContent>
-                          {quizState.error && <p className="text-sm text-destructive break-words">{quizState.error}</p>} {/* Added break-words */}
+                          {quizState.error && <p className="text-sm text-destructive break-words">{quizState.error}</p>}
                           {quizState.data && quizState.data.questions.length > 0 && (
                             <div className="space-y-6">
-                                {/* Display Score after submission */}
                                 {quizSubmitted && quizScore !== null && (
                                   <div className="p-3 bg-muted rounded-md text-center">
-                                      <p className="text-lg font-semibold">Your Score: {quizScore.toFixed(0)}%</p>
-                                      <p className="text-sm text-muted-foreground">
-                                        ({(quizScore / 100 * quizState.data.questions.length).toFixed(0)} out of {quizState.data.questions.length} correct)
-                                      </p>
+                                      <p className="text-lg font-semibold">Score: {quizScore.toFixed(0)}%</p>
+                                      <p className="text-sm text-muted-foreground">({(quizScore / 100 * quizState.data.questions.length).toFixed(0)}/{quizState.data.questions.length} correct)</p>
                                   </div>
                                 )}
-
                               {quizState.data.questions.map((q, index) => (
                                 <div key={index} className="text-sm border-b pb-4 last:border-b-0">
                                   <p className="font-medium mb-2">{index + 1}. {q.question}</p>
-                                  <RadioGroup
-                                    value={userAnswers[index]}
-                                    onValueChange={(value) => handleAnswerChange(index, value)}
-                                    disabled={quizSubmitted} // Disable after submission
-                                    className="space-y-2"
-                                  >
+                                  <RadioGroup value={userAnswers[index]} onValueChange={(value) => handleAnswerChange(index, value)} disabled={quizSubmitted} className="space-y-2">
                                     {q.options.map((opt, i) => {
                                         const isCorrect = opt === q.answer;
                                         const isSelected = userAnswers[index] === opt;
-                                        const showResultStyle = quizSubmitted; // Only show styles after submit
-
+                                        const showResultStyle = quizSubmitted;
                                         return (
-                                            <div key={i} className={cn(
-                                                "flex items-center space-x-2 p-2 rounded-md transition-colors",
-                                                showResultStyle && isCorrect && "bg-green-100 dark:bg-green-900/50 border border-green-300 dark:border-green-700",
-                                                showResultStyle && !isCorrect && isSelected && "bg-red-100 dark:bg-red-900/50 border border-red-300 dark:border-red-700"
-
-                                            )}>
+                                            <div key={i} className={cn("flex items-center space-x-2 p-2 rounded-md transition-colors", showResultStyle && isCorrect && "bg-green-100 dark:bg-green-900/50 border border-green-300 dark:border-green-700", showResultStyle && !isCorrect && isSelected && "bg-red-100 dark:bg-red-900/50 border border-red-300 dark:border-red-700")}>
                                                 <RadioGroupItem value={opt} id={`q${index}-opt${i}`} />
-                                                <Label htmlFor={`q${index}-opt${i}`} className="flex-1 cursor-pointer">
-                                                    {opt}
-                                                </Label>
-                                                {showResultStyle && (
-                                                    isCorrect ? <Check className="h-4 w-4 text-green-600" />
-                                                    : isSelected ? <X className="h-4 w-4 text-red-600" /> : null
-                                                )}
+                                                <Label htmlFor={`q${index}-opt${i}`} className="flex-1 cursor-pointer">{opt}</Label>
+                                                {showResultStyle && (isCorrect ? <Check className="h-4 w-4 text-green-600" /> : isSelected ? <X className="h-4 w-4 text-red-600" /> : null)}
                                             </div>
                                         );
                                      })}
                                   </RadioGroup>
                                 </div>
                               ))}
-
-                               {/* Submit/Regenerate Buttons */}
-                               {!quizSubmitted && (
-                                    <Button onClick={handleQuizSubmit} size="sm" className="w-full mt-4" disabled={quizState.loading || Object.keys(userAnswers).length !== quizState.data.questions.length}>
-                                        Submit Quiz
-                                    </Button>
-                                )}
-
-                                {quizSubmitted && (
-                                    <Button onClick={handleGenerateQuiz} size="sm" variant="outline" className="w-full mt-4" disabled={quizState.loading || !selectedBook?.content}>
-                                        Generate New Quiz
-                                    </Button>
-                                )}
+                               {!quizSubmitted && (<Button onClick={handleQuizSubmit} size="sm" className="w-full mt-4" disabled={quizState.loading || Object.keys(userAnswers).length !== quizState.data.questions.length}>Submit Quiz</Button>)}
+                                 <Button onClick={handleGenerateQuiz} size="sm" variant={quizSubmitted || quizState.data ? "outline" : "default"} className="w-full mt-2" disabled={!selectedBook?.textContent || quizState.loading || textExtractionState.loading || !!textExtractionState.error}>
+                                   {quizState.loading ? 'Generating...' : 'Generate New Quiz'}
+                                 </Button>
                             </div>
                           )}
-                           {quizState.data && quizState.data.questions.length === 0 && !quizState.loading &&(
-                               <p className="text-sm text-muted-foreground">No quiz questions generated.</p>
-                           )}
-                          {!quizState.loading && !quizState.data && !quizState.error && (
-                            <Button onClick={handleGenerateQuiz} size="sm" className="w-full" disabled={!selectedBook?.content}>
-                              Generate Quiz
-                            </Button>
+                           {quizState.data && quizState.data.questions.length === 0 && !quizState.loading &&(<p className="text-sm text-muted-foreground">No quiz questions generated.</p>)}
+                          {!quizState.data && !quizState.error && (
+                            <Button onClick={handleGenerateQuiz} size="sm" className="w-full" disabled={!selectedBook?.textContent || quizState.loading || textExtractionState.loading || !!textExtractionState.error}>
+                               {quizState.loading ? 'Generating...' : 'Generate Quiz'}
+                             </Button>
                           )}
-                           {/* Add Regenerate button when quiz exists but is not submitted yet */}
-                           {quizState.data && !quizSubmitted && !quizState.loading && (
-                              <Button onClick={handleGenerateQuiz} size="sm" variant="outline" className="w-full mt-2" disabled={!selectedBook?.content}>
-                                Regenerate Quiz
-                              </Button>
-                            )}
+                           {quizState.error && quizState.error.includes('AI service not initialized') && (<p className="text-xs text-destructive mt-2 text-center">{quizState.error}</p>)}
                         </AccordionContent>
                       </AccordionItem>
                     </Accordion>
-                  {/* </ScrollArea> */}
                 </CardContent>
               </Card>
             </div>
@@ -817,13 +1009,14 @@ function HomeContent() {
 }
 
 
-// Wrap HomeContent with SidebarProvider
+// Wrap HomeContent with Providers
 export default function Home() {
   return (
-    <AuthProvider> {/* Ensure AuthProvider wraps SidebarProvider or vice-versa consistently */}
-        <SidebarProvider>
-            <HomeContent />
-        </SidebarProvider>
-    </AuthProvider>
+      // AuthProvider is in RootLayout now
+      <SidebarProvider>
+          <HomeContent />
+      </SidebarProvider>
   );
 }
+
+    
