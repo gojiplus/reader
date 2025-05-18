@@ -1,6 +1,6 @@
 
 import {genkit, type GenkitError} from 'genkit';
-import {googleAI} from '@genkit-ai/googleai';
+import {googleAI, gemini15Flash} from '@genkit-ai/googleai';
 
 // Flag to indicate AI initialization status and store error message
 let isAiInitialized = false;
@@ -25,10 +25,11 @@ try {
                     apiKey: apiKey, // Pass the apiKey directly
                 }),
             ],
+            model: gemini15Flash,
             // Remove model definition here, specify in prompt/generate calls
             // model: 'googleai/gemini-pro', // Example model
-             logLevel: 'debug', // Keep debug logging for development
-             enableTracing: true, // Enable tracing if desired
+            logLevel: 'debug', // Keep debug logging for development
+            enableTracing: true, // Enable tracing if desired
 
             // Add an error handler to catch runtime issues, e.g., invalid key during a call
             errorHandler: (err: GenkitError) => {
