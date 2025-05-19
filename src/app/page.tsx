@@ -877,7 +877,7 @@ function HomeContent() {
                                   <Button
                                     variant={selectedBook?.id === book.id && viewMode === 'reader' ? "secondary" : "ghost"}
                                     className={cn(
-                                        `w-full justify-start text-left h-auto py-2 px-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:size-10`,
+                                        `w-full justify-start text-left h-auto py-2 px-2`,
                                         selectedBook?.id === book.id && viewMode === 'reader' && 'font-semibold'
                                     )}
                                     onClick={() => handleSelectBook(book)}
@@ -885,7 +885,7 @@ function HomeContent() {
                                   >
                                     <Book className="h-4 w-4 mr-2 flex-shrink-0 group-data-[collapsible=icon]:mr-0" />
                                     {/* Make sure span is visible in expanded mode */}
-                                    <span className="truncate flex-grow ml-1 group-data-[collapsible=icon]:hidden">{book.name}</span>
+                                    <span className="flex-grow ml-1 group-data-[collapsible=icon]">{book.name}</span>
                                     {book.audioStorageUrl && ( // Check for generated audio URL
                                          <Headphones className="h-3 w-3 ml-auto text-muted-foreground flex-shrink-0 group-data-[collapsible=icon]:hidden" title="Generated audio available"/>
                                     )}
