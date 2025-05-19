@@ -182,7 +182,7 @@ const SidebarProvider = React.forwardRef<
               } as React.CSSProperties
             }
             className={cn(
-              "group/sidebar-wrapper flex min-h-svh w-full has-[[data-variant=inset]]:bg-sidebar",
+              "group/sidebar-wrapper flex min-h-svh has-[[data-variant=inset]]:bg-sidebar",
               className
             )}
             ref={ref}
@@ -446,21 +446,21 @@ const SidebarInset = React.forwardRef<
 
         // --- Desktop ---
         // Apply padding based on sidebar state ONLY when mounted and not mobile
-        mounted && !isMobile && state === 'expanded' && "md:pl-[var(--sidebar-width)]", // Expanded padding
+        // mounted && !isMobile && state === 'expanded' && "md:pl-[var(--sidebar-width)]", // Expanded padding
         // Apply padding for collapsed icon mode ONLY when mounted, not mobile, and collapsible is icon
-        mounted && !isMobile && state === 'collapsed' && "md:pl-[var(--sidebar-width-icon)]", // Collapsed icon padding
+        // mounted && !isMobile && state === 'collapsed' && "md:pl-[var(--sidebar-width-icon)]", // Collapsed icon padding
 
 
         // --- Inset Variant Specific Adjustments (Apply these ON TOP of the base padding) ---
         "peer-data-[variant=inset]:min-h-[calc(100svh-theme(spacing.4))] md:peer-data-[variant=inset]:m-2",
 
         // Adjust margin/padding specifically for inset, considering sidebar state and side
-         mounted && !isMobile && state === 'expanded' && "md:peer-data-[side=left]:peer-data-[variant=inset]:ml-0 md:peer-data-[side=left]:peer-data-[variant=inset]:pl-[calc(var(--sidebar-width)_+_theme(spacing.2))]",
-         mounted && !isMobile && state === 'expanded' && "md:peer-data-[side=right]:peer-data-[variant=inset]:mr-0 md:peer-data-[side=right]:peer-data-[variant=inset]:pr-[calc(var(--sidebar-width)_+_theme(spacing.2))]",
+        //  mounted && !isMobile && state === 'expanded' && "md:peer-data-[side=left]:peer-data-[variant=inset]:ml-0 md:peer-data-[side=left]:peer-data-[variant=inset]:pl-[calc(var(--sidebar-width)_+_theme(spacing.2))]",
+        //  mounted && !isMobile && state === 'expanded' && "md:peer-data-[side=right]:peer-data-[variant=inset]:mr-0 md:peer-data-[side=right]:peer-data-[variant=inset]:pr-[calc(var(--sidebar-width)_+_theme(spacing.2))]",
 
          // Inset + Collapsed Icon mode padding
-         mounted && !isMobile && state === 'collapsed' && "md:peer-data-[side=left]:peer-data-[collapsible=icon]:peer-data-[variant=inset]:ml-0 md:peer-data-[side=left]:peer-data-[collapsible=icon]:peer-data-[variant=inset]:pl-[calc(var(--sidebar-width-icon)_+_theme(spacing.6))]",
-         mounted && !isMobile && state === 'collapsed' && "md:peer-data-[side=right]:peer-data-[collapsible=icon]:peer-data-[variant=inset]:mr-0 md:peer-data-[side=right]:peer-data-[collapsible=icon]:peer-data-[variant=inset]:pr-[calc(var(--sidebar-width-icon)_+_theme(spacing.6))]",
+        //  mounted && !isMobile && state === 'collapsed' && "md:peer-data-[side=left]:peer-data-[collapsible=icon]:peer-data-[variant=inset]:ml-0 md:peer-data-[side=left]:peer-data-[collapsible=icon]:peer-data-[variant=inset]:pl-[calc(var(--sidebar-width-icon)_+_theme(spacing.6))]",
+        //  mounted && !isMobile && state === 'collapsed' && "md:peer-data-[side=right]:peer-data-[collapsible=icon]:peer-data-[variant=inset]:mr-0 md:peer-data-[side=right]:peer-data-[collapsible=icon]:peer-data-[variant=inset]:pr-[calc(var(--sidebar-width-icon)_+_theme(spacing.6))]",
 
         // Inset + Offcanvas Collapsed mode (should have no extra padding)
          mounted && !isMobile && state === 'collapsed' && "md:peer-data-[collapsible=offcanvas]:peer-data-[variant=inset]:pl-0 md:peer-data-[collapsible=offcanvas]:peer-data-[variant=inset]:pr-0",
