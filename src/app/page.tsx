@@ -24,7 +24,6 @@ import {
 import { Book, Loader2, ArrowLeft, LogOut, Trash2, LogIn, Headphones, AudioLines } from 'lucide-react';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 // Import Browser TTS functions
 import { stopSpeech } from '@/services/tts';
 import { useToast } from '@/hooks/use-toast';
@@ -34,6 +33,7 @@ import { signOut } from 'firebase/auth';
 import { convertFileToText } from '@/services/file-conversion'; // Keep for extracting text on demand
 import { AiCard } from './sections/ai';
 import { AudioGenerationState, BookItem, TextExtractionState, UserAnswers, ViewMode } from '@/lib/interfaces';
+import { BookContent } from './sections/bookContent';
 // Remove direct import of ai-instance to prevent bundling server-side code on client
 // import { ai, isAiInitialized, aiInitializationError } from '@/ai/ai-instance';
 
@@ -596,34 +596,10 @@ function HomeContent() {
                  )}
 
               {/* Book Content Area */}
-              <Card className="flex flex-col flex-1 lg:w-2/3 shadow-md relative pt-10 md:pt-0">
-                 <CardHeader className="border-b pt-4 pb-4 md:pt-6 md:pb-6 sticky top-0 bg-card z-10">
-                     <CardTitle className="truncate pr-10">{selectedBook.name}</CardTitle>
-                 </CardHeader>
-                 <CardContent className="flex-1 p-4 overflow-auto">
-                    {/* Text Content Display */}
-                     {textExtractionState.loading && (
-                         <div className="flex items-center justify-center h-full">
-                             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                             <p className="ml-2 text-muted-foreground">Loading text...</p>
-                         </div>
-                     )}
-                     {textExtractionState.error && (
-                         <p className="text-sm text-destructive p-4 text-center">{textExtractionState.error}</p>
-                     )}
-                     {!textExtractionState.loading && !textExtractionState.error && selectedBook.textContent && (
-                         <p className="text-sm text-foreground whitespace-pre-wrap break-words">
-                             {selectedBook.textContent}
-                         </p>
-                     )}
-                      {!textExtractionState.loading && !textExtractionState.error && !selectedBook.textContent && selectedBook.contentType !== 'application/pdf' && (
-                          <p className="text-sm text-muted-foreground p-4 text-center">Text extraction is not supported for this file type ({selectedBook.contentType}).</p>
-                      )}
-                       {!textExtractionState.loading && !textExtractionState.error && !selectedBook.textContent && selectedBook.contentType === 'application/pdf' && (
-                          <p className="text-sm text-muted-foreground p-4 text-center">Click 'Load Text' or enable automatic loading.</p> // Fallback message
-                      )}
-                </CardContent>
-              </Card>
+              <BookContent
+                selectedBook={selectedBook}
+                textExtractionState={textExtractionState}              
+              />
 
               {/* AI Features & Audio Area */}
               <AiCard
