@@ -1,5 +1,5 @@
 import { Loader2 } from 'lucide-react';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BookItem, TextExtractionState } from '@/lib/interfaces';
@@ -24,11 +24,43 @@ export const BookContent = ({ selectedBook, textExtractionState }: Props) => {
 
       // Update popover position when boundaries change
       if (boundaries && textRef.current) {
-        const textNode = textRef.current.firstChild;
-        if (textNode && textNode.nodeType === Node.TEXT_NODE) {
+        let currentPosition = 0;
+        let startNode: Node | null = null;
+        let startOffset = 0;
+        let endNode: Node | null = null;
+        let endOffset = 0;
+
+        // Traverse all text nodes to find the correct positions
+        const walker = document.createTreeWalker(
+          textRef.current,
+          NodeFilter.SHOW_TEXT,
+          null
+        );
+
+        let node: Node | null;
+        while ((node = walker.nextNode())) {
+          const nodeLength = node.textContent?.length || 0;
+          
+          // Check if the start boundary is in this node
+          if (!startNode && currentPosition + nodeLength > boundaries.start) {
+            startNode = node;
+            startOffset = boundaries.start - currentPosition;
+          }
+          
+          // Check if the end boundary is in this node
+          if (!endNode && currentPosition + nodeLength >= boundaries.end) {
+            endNode = node;
+            endOffset = boundaries.end - currentPosition;
+            break;
+          }
+          
+          currentPosition += nodeLength;
+        }
+
+        if (startNode && endNode) {
           const range = document.createRange();
-          range.setStart(textNode, boundaries.start);
-          // range.setEnd(textNode, boundaries.end);
+          range.setStart(startNode, startOffset);
+          range.setEnd(endNode, endOffset);
           const rect = range.getBoundingClientRect();
           const containerRect = textRef.current.getBoundingClientRect();
           
@@ -36,6 +68,8 @@ export const BookContent = ({ selectedBook, textExtractionState }: Props) => {
             top: rect.top - containerRect.top,
             left: rect.left - containerRect.left + (rect.width / 2),
           });
+        } else {
+          setPopoverPosition(null);
         }
       } else {
         setPopoverPosition(null);
@@ -62,6 +96,13 @@ export const BookContent = ({ selectedBook, textExtractionState }: Props) => {
     );
   };
 
+  const highlightedText = useMemo(() => {
+    if (!currentSentenceBoundaries) return ''
+    return selectedBook?.textContent?.substring?.(
+      currentSentenceBoundaries.start,
+      currentSentenceBoundaries?.end,
+  )}, [selectedBook, currentSentenceBoundaries])
+
   return (
     <Card className="flex flex-col flex-1 lg:w-2/3 shadow-md relative pt-10 md:pt-0">
       <CardHeader className="border-b pt-4 pb-4 md:pt-6 md:pb-6 sticky top-0 bg-card z-10">
@@ -85,6 +126,7 @@ export const BookContent = ({ selectedBook, textExtractionState }: Props) => {
                   </p>
                   {currentSentenceBoundaries && popoverPosition && (
                       <ExplanationPopover
+                          key={highlightedText?.split(" ")[0]} // key is the first word in the sentence
                           sentence={selectedBook.textContent.substring(
                               currentSentenceBoundaries.start,
                               currentSentenceBoundaries.end
