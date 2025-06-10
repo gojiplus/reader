@@ -17,12 +17,11 @@ export const BookContent = ({ selectedBook, textExtractionState }: Props) => {
   useEffect(() => {
     const updateSentenceBoundaries = () => {
       const boundaries = getCurrentSentenceBoundaries();
-      console.log("boundaries", boundaries)
       setCurrentSentenceBoundaries(boundaries);
     };
 
     // Update every 100ms to keep highlighting in sync
-    const interval = setInterval(updateSentenceBoundaries, 100);
+    const interval = setInterval(updateSentenceBoundaries, 500);
     return () => clearInterval(interval);
   }, []);
 

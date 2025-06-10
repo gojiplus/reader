@@ -146,6 +146,9 @@ export const AiCard = ({
                 setIsSpeakingState(true);
                 setIsPausedState(false);
             }
+          },
+          (index: number, boundaries: { start: number; end: number }) => {
+            console.log('Sentence boundary reached:', index, boundaries);
           }
         );
       }
