@@ -1,6 +1,8 @@
 
 import * as pdfjsLib from 'pdfjs-dist';
 import type { PDFDocumentProxy, TextItem } from 'pdfjs-dist/types/src/display/api';
+import { fixSplitWordsWithWordList } from './fix-words';
+import { User } from 'firebase/auth';
 
 
 let workerSrcIsSet = false;
@@ -37,7 +39,7 @@ if (typeof window !== 'undefined') {
  * Converts a PDF file to a text format using pdf.js.
  * Extracts text content from all pages.
  */
-export async function convertFileToText(file: File): Promise<string> {
+export async function convertFileToText(file: File, user: User): Promise<string> {
   // Check worker status before attempting to process
   if (typeof window !== 'undefined' && (!workerSrcIsSet || workerSetupError)) {
       const errorMsg = workerSetupError?.message || "PDF worker source not configured correctly.";
@@ -75,11 +77,12 @@ export async function convertFileToText(file: File): Promise<string> {
       try {
         page = await pdf.getPage(i);
         const textContent = await page.getTextContent();
-
         // textContent.items is an array of objects matching the TextItem type
         // We need to assert the type here if TypeScript doesn't infer it correctly
         const pageText = (textContent.items as TextItem[]).map(item => item.str).join(' ');
-        fullText += pageText + '\n\n'; // Add double newline between pages
+        const fixedText = await fixSplitWordsWithWordList(user, pageText);
+        console.log("fixedText", fixedText)
+        fullText += fixedText + '\n\n'; // Add double newline between pages
         console.log(`[PDF.js] Extracted text from page ${i}`);
       } catch (pageError) {
           console.error(`[PDF.js] Error processing page ${i}:`, pageError);

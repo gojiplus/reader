@@ -307,7 +307,7 @@ function HomeContent() {
 
 
            // Extract text using the service
-           const extractedText = await convertFileToText(file);
+           const extractedText = await convertFileToText(file, user);
            console.log(`[Text Load] Text extraction successful for ${book.id}, length: ${extractedText.length}`);
 
 
