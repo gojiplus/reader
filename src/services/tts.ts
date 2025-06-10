@@ -315,7 +315,7 @@ export function stopSpeech(premature = false): void {
 }
 
 export const getCurrentSentenceBoundaries = () => {
-  if (!isSpeakingInternal || currentSentenceIndex >= sentenceBoundaries.length) {
+  if ((!isSpeakingInternal && !isPausedInternal) || currentSentenceIndex >= sentenceBoundaries.length) {
     return null;
   }
   return sentenceBoundaries[currentSentenceIndex];

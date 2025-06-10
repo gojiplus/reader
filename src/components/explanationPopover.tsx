@@ -18,6 +18,7 @@ export function ExplanationPopover({ sentence, position }: ExplanationPopoverPro
 
   const getExplanation = async () => {
     try {
+      pauseSpeech();
       setIsLoading(true);
       const explanationInput: ExplainInputSchemaInput = { text: sentence }
       const explanationResult = await generateExplanation(explanationInput)
