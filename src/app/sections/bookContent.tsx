@@ -28,7 +28,7 @@ export const BookContent = ({ selectedBook, textExtractionState }: Props) => {
         if (textNode && textNode.nodeType === Node.TEXT_NODE) {
           const range = document.createRange();
           range.setStart(textNode, boundaries.start);
-          range.setEnd(textNode, boundaries.end);
+          // range.setEnd(textNode, boundaries.end);
           const rect = range.getBoundingClientRect();
           const containerRect = textRef.current.getBoundingClientRect();
           

@@ -1,3 +1,6 @@
+
+'use server';
+
 import { ai, isAiInitialized, aiInitializationError } from '@/ai/ai-instance';
 import { z } from 'genkit';
 
