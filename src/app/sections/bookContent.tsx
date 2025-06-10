@@ -1,9 +1,10 @@
 import { Loader2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BookItem, TextExtractionState } from '@/lib/interfaces';
 import { getCurrentSentenceBoundaries } from '@/services/tts';
+import { ExplanationPopover } from '@/components/explanationPopover';
 
 interface Props {
   selectedBook: BookItem
@@ -12,15 +13,36 @@ interface Props {
 
 export const BookContent = ({ selectedBook, textExtractionState }: Props) => {
   const [currentSentenceBoundaries, setCurrentSentenceBoundaries] = useState<{ start: number; end: number } | null>(null);
+  const [popoverPosition, setPopoverPosition] = useState<{ top: number; left: number } | null>(null);
+  const textRef = useRef<HTMLParagraphElement>(null);
 
   // Update current sentence boundaries when TTS progresses
   useEffect(() => {
     const updateSentenceBoundaries = () => {
       const boundaries = getCurrentSentenceBoundaries();
       setCurrentSentenceBoundaries(boundaries);
+
+      // Update popover position when boundaries change
+      if (boundaries && textRef.current) {
+        const textNode = textRef.current.firstChild;
+        if (textNode && textNode.nodeType === Node.TEXT_NODE) {
+          const range = document.createRange();
+          range.setStart(textNode, boundaries.start);
+          range.setEnd(textNode, boundaries.end);
+          const rect = range.getBoundingClientRect();
+          const containerRect = textRef.current.getBoundingClientRect();
+          
+          setPopoverPosition({
+            top: rect.top - containerRect.top,
+            left: rect.left - containerRect.left + (rect.width / 2),
+          });
+        }
+      } else {
+        setPopoverPosition(null);
+      }
     };
 
-    // Update every 100ms to keep highlighting in sync
+    // Update every 500ms to keep highlighting in sync
     const interval = setInterval(updateSentenceBoundaries, 500);
     return () => clearInterval(interval);
   }, []);
@@ -57,9 +79,20 @@ export const BookContent = ({ selectedBook, textExtractionState }: Props) => {
               <p className="text-sm text-destructive p-4 text-center">{textExtractionState.error}</p>
           )}
           {!textExtractionState.loading && !textExtractionState.error && selectedBook.textContent && (
-              <p className="text-sm text-foreground whitespace-pre-wrap break-words">
-                  {renderTextWithHighlight(selectedBook.textContent)}
-              </p>
+              <div className="relative">
+                  <p ref={textRef} className="text-sm text-foreground whitespace-pre-wrap break-words">
+                      {renderTextWithHighlight(selectedBook.textContent)}
+                  </p>
+                  {currentSentenceBoundaries && popoverPosition && (
+                      <ExplanationPopover
+                          sentence={selectedBook.textContent.substring(
+                              currentSentenceBoundaries.start,
+                              currentSentenceBoundaries.end
+                          )}
+                          position={popoverPosition}
+                      />
+                  )}
+              </div>
           )}
           {!textExtractionState.loading && !textExtractionState.error && !selectedBook.textContent && selectedBook.contentType !== 'application/pdf' && (
               <p className="text-sm text-muted-foreground p-4 text-center">Text extraction is not supported for this file type ({selectedBook.contentType}).</p>
