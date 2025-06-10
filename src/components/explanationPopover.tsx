@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Loader2 } from 'lucide-react';
 import { ExplainInputSchemaInput, generateExplanation } from '@/ai/flows/explain-sentence';
 import { toast } from '@/hooks/use-toast';
+import { pauseSpeech } from '@/services/tts';
 
 interface ExplanationPopoverProps {
   sentence: string;
@@ -13,14 +14,13 @@ interface ExplanationPopoverProps {
 export function ExplanationPopover({ sentence, position }: ExplanationPopoverProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [explanation, setExplanation] = useState<string | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
 
-  const handleExplain = async () => {
+  const getExplanation = async () => {
     try {
       setIsLoading(true);
-
       const explanationInput: ExplainInputSchemaInput = { text: sentence }
       const explanationResult = await generateExplanation(explanationInput)
-
       setExplanation(explanationResult.explanation);
     } catch (error) {
       console.error('Error getting explanation:', error);
@@ -34,8 +34,15 @@ export function ExplanationPopover({ sentence, position }: ExplanationPopoverPro
     }
   };
 
+  // Get explanation when popover opens
+  useEffect(() => {
+    if (isOpen && !explanation && !isLoading) {
+      getExplanation();
+    }
+  }, [isOpen, explanation, isLoading]);
+
   return (
-    <Popover>
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
@@ -64,11 +71,8 @@ export function ExplanationPopover({ sentence, position }: ExplanationPopoverPro
           <div className="space-y-2">
             <h4 className="font-medium">Get Explanation</h4>
             <p className="text-sm text-muted-foreground">
-              Click the button to get an explanation of this sentence.
+              Getting explanation...
             </p>
-            <Button onClick={handleExplain} className="w-full">
-              Explain
-            </Button>
           </div>
         )}
       </PopoverContent>
