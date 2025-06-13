@@ -228,10 +228,14 @@ export function speakText(
   utterance.onboundary = (event) => {
     if (event.name === 'word') {
       const charIndex = event.charIndex;
-      const boundary = sentenceBoundaries[currentSentenceIndex]
-      if (charIndex >= boundary.end) {
-        onSentenceBoundary?.(currentSentenceIndex, sentenceBoundaries[currentSentenceIndex]);
-        currentSentenceIndex++;
+      if (currentSentenceIndex < sentenceBoundaries.length) {
+        const boundary = sentenceBoundaries[currentSentenceIndex];
+        if (charIndex >= boundary.end) {
+          onSentenceBoundary?.(currentSentenceIndex, boundary);
+          currentSentenceIndex++;
+        }
+      } else {
+        console.warn(`[TTS] currentSentenceIndex (${currentSentenceIndex}) is out of bounds for sentenceBoundaries.`);
       }
     } else if (event.name === 'sentence') {
       onSentenceBoundary?.(currentSentenceIndex, sentenceBoundaries[currentSentenceIndex]);
