@@ -9,6 +9,8 @@ let utterance: SpeechSynthesisUtterance | null = null;
 let currentText = ''; // Stores the text of the currently active (speaking or paused) utterance
 let isSpeakingInternal = false; // Internal tracking
 let isPausedInternal = false; // Internal tracking
+let currentSentenceIndex = 0;
+let sentenceBoundaries: { start: number; end: number }[] = [];
 
 // Store callbacks to avoid assigning them multiple times if not needed
 let onEndCallback: (() => void) | undefined;
@@ -34,6 +36,36 @@ export function getCurrentUtteranceText(): string {
 }
 
 
+const calculateSentenceBoundaries = (text: string) => {
+  const sentences: { start: number; end: number }[] = [];
+  let start = 0;
+  let inSentence = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    const nextChar = text[i + 1];
+
+    if (!inSentence && !/\s/.test(char)) {
+      start = i;
+      inSentence = true;
+    }
+
+    if (inSentence && /[.!?;]/.test(char) && (!nextChar || /\s/.test(nextChar))) {
+      sentences.push({ start, end: i + 1 });
+      inSentence = false;
+    }
+  }
+
+  // Handle the last sentence if it doesn't end with punctuation
+  if (inSentence) {
+    sentences.push({ start, end: text.length });
+  }
+
+  return sentences;
+};
+
+
+
 /**
  * Speaks the given text using the browser's TTS engine.
  * @param text The text to speak.
@@ -49,7 +81,8 @@ export function speakText(
   onError?: (event: SpeechSynthesisErrorEvent) => void,
   onStart?: () => void,
   onPause?: () => void,
-  onResume?: () => void
+  onResume?: () => void,
+  onSentenceBoundary?: (index: number, boundaries: { start: number; end: number }) => void
 ): void {
   if (typeof window === 'undefined' || !window.speechSynthesis) {
     console.error('Speech Synthesis API is not supported in this browser.');
@@ -75,6 +108,8 @@ export function speakText(
      wasCancelledPrematurely = false;
   }
 
+  currentSentenceIndex = 0;
+  sentenceBoundaries = calculateSentenceBoundaries(text);
 
   currentText = text; // Update currentText ONLY when starting NEW speech
   utterance = new SpeechSynthesisUtterance(text);
@@ -190,6 +225,24 @@ export function speakText(
     }
   };
 
+  utterance.onboundary = (event) => {
+    if (event.name === 'word') {
+      const charIndex = event.charIndex;
+      if (currentSentenceIndex < sentenceBoundaries.length) {
+        const boundary = sentenceBoundaries[currentSentenceIndex];
+        if (charIndex >= boundary.end) {
+          onSentenceBoundary?.(currentSentenceIndex, boundary);
+          currentSentenceIndex++;
+        }
+      } else {
+        console.warn(`[TTS] currentSentenceIndex (${currentSentenceIndex}) is out of bounds for sentenceBoundaries.`);
+      }
+    } else if (event.name === 'sentence') {
+      onSentenceBoundary?.(currentSentenceIndex, sentenceBoundaries[currentSentenceIndex]);
+      currentSentenceIndex++;
+    }
+  };
+
   // Optional: Configure voice, rate, pitch if needed
   // const voices = synth.getVoices();
   // utterance.voice = voices[0]; // Example: Set a specific voice
@@ -264,3 +317,10 @@ export function stopSpeech(premature = false): void {
      wasCancelledPrematurely = false; // Ensure flag is reset if synth unavailable
   }
 }
+
+export const getCurrentSentenceBoundaries = () => {
+  if ((!isSpeakingInternal && !isPausedInternal) || currentSentenceIndex >= sentenceBoundaries.length) {
+    return null;
+  }
+  return sentenceBoundaries[currentSentenceIndex];
+};

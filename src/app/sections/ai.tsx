@@ -76,18 +76,13 @@ export const AiCard = ({
     const currentlyPaused = isPausedState;
     const activeUtteranceText = getCurrentUtteranceText(); // Get text from active utterance
 
-
-    console.log("Play/Pause Clicked. State - Speaking:", currentlySpeaking, "Paused:", currentlyPaused);
-    console.log("Current Book Text (start):", currentBookText?.substring(0, 50) + "...");
-    console.log("Active Utterance Text (start):", activeUtteranceText?.substring(0, 50) + "...");
-
     if (currentlySpeaking) {
       console.log("[TTS] Requesting pause.");
       pauseSpeech();
       // State updates handled by onPause callback
     } else {
-      // If paused AND the active utterance text matches the current book text, resume
-      if (currentlyPaused && activeUtteranceText === currentBookText) {
+      // If paused
+      if (currentlyPaused) {
         console.log("[TTS] Requesting resume.");
         resumeSpeech();
         // State updates handled by onResume callback
@@ -98,10 +93,10 @@ export const AiCard = ({
         speakText(
           currentBookText, // Use the currently selected book's text
           () => { // onEnd
-            console.log("[TTS Callback] Playback finished naturally (onEnd).");
+            console.log("[TTS Callback] Playback finished naturally (onEnd).", isSpeakingState);
             setIsSpeakingState(false);
             setIsPausedState(false);
-             setCurrentSpeakingText(null); // Clear tracked text only on natural end from this flow
+            setCurrentSpeakingText(null); // Clear tracked text only on natural end from this flow
           },
           (errorEvent) => { // onError
             console.log("[TTS Callback] Speech error event received.", errorEvent); // Log event for debugging
@@ -121,31 +116,29 @@ export const AiCard = ({
              } else {
                  console.log(`[TTS Callback] Ignoring expected error: '${errorMsg}'.`);
              }
+             console.log("isSpeakingState", isSpeakingState)
             // Reset state regardless of error type, consistent with tts service logic
             setIsSpeakingState(false);
             setIsPausedState(false);
             setCurrentSpeakingText(null); // Clear tracked text on any error/stop
           },
           () => { // onStart
-            console.log('[TTS Callback] Playback started (onStart).');
+            console.log('[TTS Callback] Playback started (onStart).', isSpeakingState);
             setIsSpeakingState(true);
             setIsPausedState(false);
           },
           () => { // onPause
-            console.log('[TTS Callback] Playback paused (onPause).');
-            // Only update state if it was previously speaking
-            if (isSpeakingState) { // Check internal react state
-                setIsSpeakingState(false);
-                setIsPausedState(true);
-            }
+             console.log('[TTS Callback] Playback paused (onPause).', isSpeakingState);
+            setIsSpeakingState(false);
+            setIsPausedState(true);
           },
           () => { // onResume
-            console.log('[TTS Callback] Playback resumed (onResume).');
-             // Only update state if it was previously paused
-            if (isPausedState) { // Check internal react state
-                setIsSpeakingState(true);
-                setIsPausedState(false);
-            }
+            console.log('[TTS Callback] Playback resumed (onResume).', isSpeakingState);
+              setIsSpeakingState(true);
+              setIsPausedState(false);
+          },
+          (index: number, boundaries: { start: number; end: number }) => {
+            console.log('Sentence boundary reached:', index, boundaries);
           }
         );
       }
@@ -154,13 +147,12 @@ export const AiCard = ({
 
    const handleStop = () => {
       if (typeof window !== 'undefined' && window.speechSynthesis) {
-          console.log("Stop button clicked. Requesting stop.");
-          stopSpeech(); // This should trigger onend or onerror('interrupted'/'canceled')
-          // Immediately update UI state for responsiveness
-          setIsSpeakingState(false);
-          setIsPausedState(false);
-           // Explicitly clear tracked text immediately on user stop action
-           setCurrentSpeakingText(null);
+        stopSpeech(); // This should trigger onend or onerror('interrupted'/'canceled')
+        // Immediately update UI state for responsiveness
+        setIsSpeakingState(false);
+        setIsPausedState(false);
+        // Explicitly clear tracked text immediately on user stop action
+        setCurrentSpeakingText(null);
       }
   };
 
