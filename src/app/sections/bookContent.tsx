@@ -126,7 +126,7 @@ export const BookContent = ({ selectedBook, textExtractionState }: Props) => {
                   </p>
                   {currentSentenceBoundaries && popoverPosition && (
                       <ExplanationPopover
-                          key={highlightedText?.split(" ")[0]} // key is the first word in the sentence
+                          key={`${currentSentenceBoundaries.start}-${currentSentenceBoundaries.end}`} // key is a combination of sentence boundaries
                           sentence={selectedBook.textContent.substring(
                               currentSentenceBoundaries.start,
                               currentSentenceBoundaries.end
