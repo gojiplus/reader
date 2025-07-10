@@ -7,34 +7,24 @@ import { useAuth } from '@/contexts/AuthContext';
 import { db, auth, storage } from '@/lib/firebase/clientApp'; // Import Storage too
 import { collection, addDoc, query, where, doc, onSnapshot, orderBy, deleteDoc, serverTimestamp } from 'firebase/firestore'; // Firestore functions
 import { deleteObject, ref } from 'firebase/storage'; // Storage delete function
-import { FileUpload, type FileUploadMetadata } from '@/components/feature/file-upload'; // Import updated type
+import type { FileUploadMetadata } from '@/components/feature/file-upload';
 import {
   SidebarProvider,
-  Sidebar,
-  SidebarHeader,
-  SidebarContent,
-  SidebarFooter,
   SidebarTrigger,
   SidebarInset,
   useSidebar,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
 } from '@/components/ui/sidebar';
-import { Book, Loader2, ArrowLeft, LogOut, Trash2, LogIn, Headphones, AudioLines } from 'lucide-react';
-import { Button, buttonVariants } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Loader2, ArrowLeft, LogIn, AudioLines } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 // Import Browser TTS functions
 import { stopSpeech } from '@/services/tts';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { signOut } from 'firebase/auth';
 import { convertFileToText } from '@/services/file-conversion'; // Keep for extracting text on demand
-import { AiCard } from './sections/ai';
-import { AudioGenerationState, BookItem, TextExtractionState, UserAnswers, ViewMode } from '@/lib/interfaces';
-import { BookContent } from './sections/bookContent';
+import { AudioGenerationState, BookItem, TextExtractionState, ViewMode } from '@/lib/interfaces';
 // Remove direct import of ai-instance to prevent bundling server-side code on client
+import LibrarySidebar from './sections/librarySidebar';
+import ReaderView from './sections/readerView';
 // import { ai, isAiInitialized, aiInitializationError } from '@/ai/ai-instance';
 
 
@@ -452,103 +442,17 @@ function HomeContent() {
 
   return (
     <>
-      {/* Sidebar */}
-       <SidebarProvider>
-          <Sidebar collapsible="icon">
-             <SidebarHeader className="items-center border-b border-sidebar-border">
-               <div className="flex items-center gap-2">
-                  <AudioLines className="h-6 w-6 text-primary" />
-                  <h1 className="text-xl font-semibold text-foreground group-data-[collapsible=icon]:hidden">AudioBook Buddy</h1>
-               </div>
-               {mounted && isMobile && <div className="ml-auto"><SidebarTrigger /></div>}
-             </SidebarHeader>
-             <SidebarContent className="p-0 flex flex-col">
-                 <div className="p-4 flex-grow overflow-hidden">
-                     <p className="mb-2 font-medium text-foreground group-data-[collapsible=icon]:hidden">Your Library</p>
-                      {booksLoading ? (
-                        <div className="mt-4 space-y-2 group-data-[collapsible=icon]:hidden">
-                             {[...Array(3)].map((_, i) => (
-                                 <div key={i} className="flex items-center space-x-2 p-2 rounded bg-muted/50 animate-pulse">
-                                     <Book className="h-4 w-4 text-muted-foreground/50" />
-                                     <div className="h-4 bg-muted-foreground/30 rounded w-3/4"></div>
-                                 </div>
-                             ))}
-                        </div>
-                      ) : books.length === 0 ? (
-                          <div className="mt-4 text-center text-sm text-muted-foreground group-data-[collapsible=icon]:hidden">Upload a PDF file.</div>
-                      ) : (
-                          <ScrollArea className="h-[calc(100vh-280px)] group-data-[collapsible=icon]:h-auto">
-                              <ul className="space-y-1 pr-4 group-data-[collapsible=icon]:pr-0">
-                              {books.map((book) => (
-                                <li key={book.id} className="group/book-item relative">
-                                  <Button
-                                    variant={selectedBook?.id === book.id && viewMode === 'reader' ? "secondary" : "ghost"}
-                                    className={cn(
-                                        `w-full justify-start text-left h-auto py-2 px-2`,
-                                        selectedBook?.id === book.id && viewMode === 'reader' && 'font-semibold'
-                                    )}
-                                    onClick={() => handleSelectBook(book)}
-                                    title={book.name}
-                                  >
-                                    <Book className="h-4 w-4 mr-2 flex-shrink-0 group-data-[collapsible=icon]:mr-0" />
-                                    {/* Make sure span is visible in expanded mode */}
-                                    <span className="flex-grow ml-1 group-data-[collapsible=icon]">{book.name}</span>
-                                    {book.audioStorageUrl && ( // Check for generated audio URL
-                                         <Headphones className="h-3 w-3 ml-auto text-muted-foreground flex-shrink-0 group-data-[collapsible=icon]:hidden" title="Generated audio available"/>
-                                    )}
-                                  </Button>
-                                   <AlertDialog>
-                                        <AlertDialogTrigger asChild>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="absolute right-0 top-1/2 -translate-y-1/2 mr-1 h-7 w-7 text-muted-foreground hover:text-destructive opacity-0 group-hover/book-item:opacity-100 focus:opacity-100 group-data-[collapsible=icon]:hidden"
-                                                aria-label={`Delete book ${book.name}`}
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                            <AlertDialogHeader>
-                                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                                This action cannot be undone. This will permanently delete "{book.name}" {book.audioStorageUrl ? 'and its associated audio file ' : ''}from Firestore and Storage.
-                                            </AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                            <AlertDialogAction onClick={() => deleteBook(book)} className={buttonVariants({ variant: "destructive" })}>
-                                                Delete
-                                            </AlertDialogAction>
-                                            </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                    </AlertDialog>
-
-                                </li>
-                              ))}
-                            </ul>
-                          </ScrollArea>
-                      )}
-                </div>
-
-                 <div className="border-t border-sidebar-border p-4 mt-auto group-data-[collapsible=icon]:p-2">
-                     {/* Pass the updated addBook function */}
-                    <FileUpload onUploadSuccess={addBook} />
-                </div>
-
-                 <div className="border-t border-sidebar-border p-4 group-data-[collapsible=icon]:p-2">
-                     <div className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center">
-                         <div className="flex-grow truncate group-data-[collapsible=icon]:hidden">
-                            <p className="text-sm font-medium text-foreground truncate" title={user?.email || 'User'}>{user?.email || 'User'}</p>
-                        </div>
-                         <Button variant="ghost" size="icon" onClick={handleLogout} className="ml-auto group-data-[collapsible=icon]:ml-0" title="Logout">
-                            <LogOut className="h-4 w-4" />
-                         </Button>
-                     </div>
-                 </div>
-             </SidebarContent>
-           </Sidebar>
-      </SidebarProvider>
+      <LibrarySidebar
+        books={books}
+        booksLoading={booksLoading}
+        selectedBook={selectedBook}
+        viewMode={viewMode}
+        onAddBook={addBook}
+        onSelectBook={handleSelectBook}
+        onDeleteBook={deleteBook}
+        onLogout={handleLogout}
+        mounted={mounted}
+      />
 
       {/* Main Content Area */}
       <SidebarInset className="flex flex-col">
@@ -588,28 +492,15 @@ function HomeContent() {
           )}
 
           {viewMode === 'reader' && selectedBook && (
-            <div className="flex flex-1 flex-col lg:flex-row gap-4 md:gap-6 max-w-7xl mx-auto w-full overflow-hidden">
-                {mounted && !isMobile && (
-                    <div className="absolute top-4 left-4 md:top-6 md:left-6 z-20">
-                         <Button variant="outline" size="icon" onClick={handleGoBackToLibrary} aria-label="Back to Library"><ArrowLeft className="h-5 w-5" /></Button>
-                     </div>
-                 )}
-
-              {/* Book Content Area */}
-              <BookContent
-                selectedBook={selectedBook}
-                textExtractionState={textExtractionState}              
-              />
-
-              {/* AI Features & Audio Area */}
-              <AiCard
-                selectedBook={selectedBook}
-                setSelectedBook={setSelectedBook}
-                textExtractionState={textExtractionState}
-                audioPlayerRef={audioPlayerRef}
-                viewMode={viewMode}
-              />
-            </div>
+            <ReaderView
+              selectedBook={selectedBook}
+              setSelectedBook={setSelectedBook}
+              textExtractionState={textExtractionState}
+              audioPlayerRef={audioPlayerRef}
+              onBack={handleGoBackToLibrary}
+              viewMode={viewMode}
+              mounted={mounted}
+            />
           )}
         </main>
       </SidebarInset>
