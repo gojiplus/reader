@@ -5,7 +5,7 @@
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#0D9488", // Teal color from theme
+  "theme_color": "#0D9488",
   "description": "Convert PDFs and ePUBs to audiobooks with AI summaries and quizzes.",
   "icons": [
     {
