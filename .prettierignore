@@ -33,3 +33,6 @@ pnpm-lock.yaml
 # Other
 .git/
 *.md
+
+# Claude Code local configuration
+.claude/
