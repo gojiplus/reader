@@ -41,7 +41,8 @@ function hasValidSummary(output: unknown): output is AIResponseOutput & { summar
   );
 }
 
-export function summarizeAudiobookChapter(
+// eslint-disable-next-line require-await
+export async function summarizeAudiobookChapter(
   input: SummarizeAudiobookChapterInput
 ): Promise<SummarizeAudiobookChapterOutput> {
   // Check if AI is initialized

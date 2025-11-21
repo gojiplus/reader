@@ -58,7 +58,8 @@ export type GenerateQuizQuestionsOutput = z.infer<typeof GenerateQuizQuestionsOu
 
 const logger = createComponentLogger('GenerateQuizQuestions');
 
-export function generateQuizQuestions(
+// eslint-disable-next-line require-await
+export async function generateQuizQuestions(
   input: GenerateQuizQuestionsInput
 ): Promise<GenerateQuizQuestionsOutput> {
   // Check if AI is initialized
