@@ -1,7 +1,6 @@
+import * as React from 'react';
 
-import * as React from "react"
-
-const MOBILE_BREAKPOINT = 768
+const MOBILE_BREAKPOINT = 768;
 
 /**
  * Custom hook to determine if the current viewport width is considered mobile.
@@ -9,7 +8,7 @@ const MOBILE_BREAKPOINT = 768
  * then `true` or `false` after mounting.
  */
 export function useIsMobile() {
-  const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined)
+  const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined);
 
   React.useEffect(() => {
     // This effect runs only on the client after hydration
@@ -21,11 +20,11 @@ export function useIsMobile() {
     checkDevice();
 
     // Listener for window resize
-    window.addEventListener("resize", checkDevice);
+    window.addEventListener('resize', checkDevice);
 
     // Cleanup listener on component unmount
     return () => {
-      window.removeEventListener("resize", checkDevice);
+      window.removeEventListener('resize', checkDevice);
     };
   }, []); // Empty dependency array ensures this runs once on mount
 

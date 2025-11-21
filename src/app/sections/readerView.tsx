@@ -1,9 +1,9 @@
-import { useSidebar } from '@/components/ui/sidebar';
-import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useSidebar } from '@/components/ui/sidebar';
 import { BookItem, TextExtractionState, ViewMode } from '@/lib/interfaces';
-import { BookContent } from './bookContent';
 import { AiCard } from './ai';
+import { BookContent } from './bookContent';
 
 interface Props {
   selectedBook: BookItem;
@@ -27,11 +27,11 @@ export const ReaderView = ({
   const { isMobile } = useSidebar();
 
   return (
-    <div className="flex flex-1 flex-col lg:flex-row gap-4 md:gap-6 max-w-7xl mx-auto w-full overflow-hidden">
+    <div className='flex flex-1 flex-col lg:flex-row gap-4 md:gap-6 max-w-7xl mx-auto w-full overflow-hidden'>
       {mounted && !isMobile && (
-        <div className="absolute top-4 left-4 md:top-6 md:left-6 z-20">
-          <Button variant="outline" size="icon" onClick={onBack} aria-label="Back to Library">
-            <ArrowLeft className="h-5 w-5" />
+        <div className='absolute top-4 left-4 md:top-6 md:left-6 z-20'>
+          <Button variant='outline' size='icon' onClick={onBack} aria-label='Back to Library'>
+            <ArrowLeft className='h-5 w-5' />
           </Button>
         </div>
       )}

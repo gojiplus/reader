@@ -1,5 +1,4 @@
-import { User } from "firebase/auth";
-
+import { User } from 'firebase/auth';
 
 /**
  * Fix split words in text by merging adjacent tokens if their concatenation is a valid word.
@@ -10,19 +9,21 @@ export const fixSplitWordsWithWordList = async (user: User, text: string): Promi
   // Call the API route
   try {
     const response = await fetch('/api/analyze-text', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${idToken}`, // Include the auth token
-        },
-        body: JSON.stringify({
-            text: text,
-        }),
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${idToken}`, // Include the auth token
+      },
+      body: JSON.stringify({
+        text,
+      }),
     });
 
     if (!response.ok) {
       const errorMessage = await response.text().catch(() => response.statusText);
-      throw new Error(`Analyze-text API request failed: ${response.status} ${response.statusText} - ${errorMessage}`);
+      throw new Error(
+        `Analyze-text API request failed: ${response.status} ${response.statusText} - ${errorMessage}`
+      );
     }
 
     const data = await response.json();
@@ -32,4 +33,4 @@ export const fixSplitWordsWithWordList = async (user: User, text: string): Promi
     // Fallback: return the original text unmodified
     return text;
   }
-}
+};

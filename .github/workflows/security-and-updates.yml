@@ -1,0 +1,165 @@
+name: Security & Updates
+
+on:
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch: # Allow manual triggering
+
+permissions:
+  contents: write
+  security-events: write
+  pull-requests: write
+
+jobs:
+  audit-dependencies:
+    name: Audit Dependencies
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run npm audit
+        run: npm audit --audit-level=moderate
+        continue-on-error: true
+
+      - name: Generate dependency report
+        run: |
+          npm audit --json > audit-report.json || true
+          npm list --json > dependency-tree.json || true
+
+      - name: Upload audit results
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-audit-report
+          path: |
+            audit-report.json
+            dependency-tree.json
+          retention-days: 30
+
+  codeql-analysis:
+    name: CodeQL Security Analysis
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        language: ['javascript', 'typescript']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build for analysis
+        run: npm run build
+        env:
+          NEXT_PUBLIC_FIREBASE_API_KEY: 'mock-api-key'
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: 'mock.firebaseapp.com'
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID: 'mock-project'
+          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: 'mock.appspot.com'
+          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: '123456789'
+          NEXT_PUBLIC_FIREBASE_APP_ID: 'mock-app-id'
+          GOOGLE_GENAI_API_KEY: 'mock-genai-key'
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+
+  dependency-updates:
+    name: Update Dependencies
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Check for updates
+        id: updates
+        run: |
+          npm outdated --json > outdated.json || true
+          if [ -s outdated.json ]; then
+            echo "updates_available=true" >> $GITHUB_OUTPUT
+          else
+            echo "updates_available=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Update minor and patch versions
+        if: steps.updates.outputs.updates_available == 'true'
+        run: |
+          # Update patch versions (safe)
+          npx npm-check-updates -u --target patch
+          npm install
+
+          # Check if changes were made
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "changes_made=true" >> $GITHUB_OUTPUT
+          else
+            echo "changes_made=false" >> $GITHUB_OUTPUT
+          fi
+        id: patch_updates
+
+      - name: Run tests after updates
+        if: steps.patch_updates.outputs.changes_made == 'true'
+        run: |
+          npm test -- --run
+          npm run build
+        env:
+          NEXT_PUBLIC_FIREBASE_API_KEY: 'mock-api-key'
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: 'mock.firebaseapp.com'
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID: 'mock-project'
+          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: 'mock.appspot.com'
+          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: '123456789'
+          NEXT_PUBLIC_FIREBASE_APP_ID: 'mock-app-id'
+          GOOGLE_GENAI_API_KEY: 'mock-genai-key'
+
+      - name: Create Pull Request
+        if: steps.patch_updates.outputs.changes_made == 'true'
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'chore: update patch dependencies'
+          title: '⬆️ Update patch dependencies'
+          body: |
+            Automated dependency update for patch versions.
+
+            This PR was automatically created by the dependency update workflow.
+
+            ### Changes
+            - Updated patch versions of dependencies
+            - All tests pass
+            - Build succeeds
+
+            Please review the changes before merging.
+          branch: 'automated/dependency-updates'
+          delete-branch: true

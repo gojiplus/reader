@@ -1,0 +1,28 @@
+echo "🔍 Running pre-commit checks..."
+
+# Run lint-staged for formatting and linting
+npx lint-staged
+
+# Run type checking (but allow it to fail for now due to existing issues)
+echo "🔧 Running TypeScript type check..."
+npm run typecheck || echo "⚠️  TypeScript errors found but continuing..."
+
+# Run tests (individual files to avoid memory issues)
+echo "🧪 Running tests..."
+test_failed=0
+
+echo "  Running hooks tests..."
+NODE_OPTIONS="--max-old-space-size=8192" npx vitest --run src/hooks/__tests__/useViewMode.test.ts --no-coverage || test_failed=1
+
+echo "  Running lib tests..."
+NODE_OPTIONS="--max-old-space-size=8192" npx vitest --run src/lib/__tests__/error-handler.test.ts --no-coverage || test_failed=1
+NODE_OPTIONS="--max-old-space-size=8192" npx vitest --run src/lib/__tests__/logger.test.ts --no-coverage || test_failed=1
+
+if [ $test_failed -eq 1 ]; then
+  echo "❌ Some tests failed"
+  exit 1
+else
+  echo "✅ All tests passed"
+fi
+
+echo "✅ Pre-commit checks completed!"

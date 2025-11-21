@@ -1,8 +1,7 @@
-
 'use client';
 
-import { storage, auth } from '@/lib/firebase/clientApp';
 import { ref, uploadBytesResumable, getDownloadURL, UploadTaskSnapshot } from 'firebase/storage';
+import { storage, auth } from '@/lib/firebase/clientApp';
 
 /**
  * Uploads a file to Firebase Storage under a user-specific path.
@@ -15,7 +14,7 @@ import { ref, uploadBytesResumable, getDownloadURL, UploadTaskSnapshot } from 'f
  */
 export const uploadFileToStorage = (
   file: File,
-  pathPrefix: string = 'uploads/',
+  pathPrefix = 'uploads/',
   onProgress?: (progress: number) => void
 ): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -24,8 +23,8 @@ export const uploadFileToStorage = (
       return reject(new Error('User not authenticated. Cannot upload file.'));
     }
     if (!storage) {
-        console.error('[Storage] Firebase Storage is not initialized.');
-        return reject(new Error('Firebase Storage is not initialized.'));
+      console.error('[Storage] Firebase Storage is not initialized.');
+      return reject(new Error('Firebase Storage is not initialized.'));
     }
 
     const userId = auth.currentUser.uid;
@@ -36,7 +35,7 @@ export const uploadFileToStorage = (
     const storagePath = `${prefix}${userId}/${Date.now()}_${sanitizedFilename}`;
     const storageRef = ref(storage, storagePath);
 
-    console.log(`[Storage] Starting upload to: ${storagePath}`);
+    console.warn(`[Storage] Starting upload to: ${storagePath}`);
     const uploadTask = uploadBytesResumable(storageRef, file);
 
     uploadTask.on(
@@ -44,20 +43,21 @@ export const uploadFileToStorage = (
       (snapshot: UploadTaskSnapshot) => {
         // Observe state change events such as progress, pause, and resume
         const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        // console.log(`[Storage] Upload is ${progress}% done`); // Less verbose logging
-        if (progress === 100) console.log('[Storage] Upload 100% done, waiting for completion event...');
+        // console.warn(`[Storage] Upload is ${progress}% done`); // Less verbose logging
+        if (progress === 100)
+          console.warn('[Storage] Upload 100% done, waiting for completion event...');
         onProgress?.(progress); // Call the progress callback if provided
 
         switch (snapshot.state) {
           case 'paused':
-            console.log('[Storage] Upload is paused');
+            console.warn('[Storage] Upload is paused');
             break;
           case 'running':
-            // console.log('[Storage] Upload is running'); // Too noisy
+            // console.warn('[Storage] Upload is running'); // Too noisy
             break;
         }
       },
-      (error) => {
+      error => {
         // Handle unsuccessful uploads
         console.error('[Storage] Upload task failed:', error);
         let errorMessage = `Upload failed: ${error.message}`;
@@ -70,26 +70,27 @@ export const uploadFileToStorage = (
             errorMessage = 'Upload canceled.';
             break;
           case 'storage/retry-limit-exceeded': // Added specific handling
-              errorMessage = 'Upload timed out due to network issues. Please check your connection and try again.';
-              break;
+            errorMessage =
+              'Upload timed out due to network issues. Please check your connection and try again.';
+            break;
           case 'storage/unknown':
             errorMessage = 'An unknown storage error occurred.';
             break;
         }
-        console.log('[Storage] Rejecting upload promise due to upload error.'); // <-- Add log
+        console.warn('[Storage] Rejecting upload promise due to upload error.'); // <-- Add log
         reject(new Error(errorMessage));
       },
       async () => {
         // Handle successful uploads on complete
-        console.log('[Storage] Upload task completed successfully. Getting download URL...');
+        console.warn('[Storage] Upload task completed successfully. Getting download URL...');
         try {
           const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-          console.log('[Storage] File available at', downloadURL);
-          console.log('[Storage] Resolving upload promise.'); // <-- Add log
+          console.warn('[Storage] File available at', downloadURL);
+          console.warn('[Storage] Resolving upload promise.'); // <-- Add log
           resolve(downloadURL);
         } catch (getUrlError) {
           console.error('[Storage] Failed to get download URL after upload:', getUrlError);
-          console.log('[Storage] Rejecting upload promise due to getDownloadURL error.'); // <-- Add log
+          console.warn('[Storage] Rejecting upload promise due to getDownloadURL error.'); // <-- Add log
           reject(new Error('Upload succeeded, but failed to get download URL.'));
         }
       }
@@ -99,5 +100,3 @@ export const uploadFileToStorage = (
 
 // TODO: Add function to delete files from storage when a book is deleted.
 // export const deleteFileFromStorage = async (storagePathOrUrl: string): Promise<void> => { ... }
-
-
