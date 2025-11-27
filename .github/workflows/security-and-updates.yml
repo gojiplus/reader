@@ -132,7 +132,7 @@ jobs:
       - name: Run tests after updates
         if: steps.patch_updates.outputs.changes_made == 'true'
         run: |
-          npm test -- --run
+          npm test
           npm run build
         env:
           NEXT_PUBLIC_FIREBASE_API_KEY: 'mock-api-key'
