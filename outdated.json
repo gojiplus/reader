@@ -170,7 +170,7 @@
     "dependent": "reader"
   },
   "next": {
-    "wanted": "15.5.2",
+    "wanted": "15.5.6",
     "latest": "15.5.6",
     "dependent": "reader"
   },
@@ -205,13 +205,13 @@
     "dependent": "reader"
   },
   "react-hook-form": {
-    "wanted": "7.66.1",
-    "latest": "7.66.1",
+    "wanted": "7.67.0",
+    "latest": "7.67.0",
     "dependent": "reader"
   },
   "recharts": {
     "wanted": "2.15.4",
-    "latest": "3.5.0",
+    "latest": "3.5.1",
     "dependent": "reader"
   },
   "tailwind-merge": {
