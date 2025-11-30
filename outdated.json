@@ -196,7 +196,7 @@
   },
   "react-day-picker": {
     "wanted": "8.10.1",
-    "latest": "9.11.2",
+    "latest": "9.11.3",
     "dependent": "reader"
   },
   "react-dom": {
