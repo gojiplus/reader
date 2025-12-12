@@ -1,12 +1,12 @@
 {
   "@genkit-ai/googleai": {
-    "wanted": "1.24.0",
-    "latest": "1.24.0",
+    "wanted": "1.25.0",
+    "latest": "1.25.0",
     "dependent": "reader"
   },
   "@genkit-ai/next": {
-    "wanted": "1.24.0",
-    "latest": "1.24.0",
+    "wanted": "1.25.0",
+    "latest": "1.25.0",
     "dependent": "reader"
   },
   "@hookform/resolvers": {
@@ -125,8 +125,8 @@
     "dependent": "reader"
   },
   "@tanstack/react-query": {
-    "wanted": "5.90.11",
-    "latest": "5.90.11",
+    "wanted": "5.90.12",
+    "latest": "5.90.12",
     "dependent": "reader"
   },
   "class-variance-authority": {
@@ -160,18 +160,18 @@
     "dependent": "reader"
   },
   "genkit": {
-    "wanted": "1.24.0",
-    "latest": "1.24.0",
+    "wanted": "1.25.0",
+    "latest": "1.25.0",
     "dependent": "reader"
   },
   "lucide-react": {
     "wanted": "0.475.0",
-    "latest": "0.555.0",
+    "latest": "0.560.0",
     "dependent": "reader"
   },
   "next": {
-    "wanted": "15.5.6",
-    "latest": "15.5.6",
+    "wanted": "15.5.9",
+    "latest": "15.5.9",
     "dependent": "reader"
   },
   "node-gtts": {
@@ -191,22 +191,22 @@
   },
   "react": {
     "wanted": "18.3.1",
-    "latest": "19.2.0",
+    "latest": "19.2.3",
     "dependent": "reader"
   },
   "react-day-picker": {
     "wanted": "8.10.1",
-    "latest": "9.11.3",
+    "latest": "9.12.0",
     "dependent": "reader"
   },
   "react-dom": {
     "wanted": "18.3.1",
-    "latest": "19.2.0",
+    "latest": "19.2.3",
     "dependent": "reader"
   },
   "react-hook-form": {
-    "wanted": "7.67.0",
-    "latest": "7.67.0",
+    "wanted": "7.68.0",
+    "latest": "7.68.0",
     "dependent": "reader"
   },
   "recharts": {
