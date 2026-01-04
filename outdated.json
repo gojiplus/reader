@@ -1,12 +1,12 @@
 {
   "@genkit-ai/googleai": {
-    "wanted": "1.25.0",
-    "latest": "1.25.0",
+    "wanted": "1.27.0",
+    "latest": "1.27.0",
     "dependent": "reader"
   },
   "@genkit-ai/next": {
-    "wanted": "1.25.0",
-    "latest": "1.25.0",
+    "wanted": "1.27.0",
+    "latest": "1.27.0",
     "dependent": "reader"
   },
   "@hookform/resolvers": {
@@ -125,8 +125,8 @@
     "dependent": "reader"
   },
   "@tanstack/react-query": {
-    "wanted": "5.90.12",
-    "latest": "5.90.12",
+    "wanted": "5.90.16",
+    "latest": "5.90.16",
     "dependent": "reader"
   },
   "class-variance-authority": {
@@ -146,7 +146,7 @@
   },
   "firebase": {
     "wanted": "11.10.0",
-    "latest": "12.6.0",
+    "latest": "12.7.0",
     "dependent": "reader"
   },
   "firebase-admin": {
@@ -160,13 +160,13 @@
     "dependent": "reader"
   },
   "genkit": {
-    "wanted": "1.25.0",
-    "latest": "1.25.0",
+    "wanted": "1.27.0",
+    "latest": "1.27.0",
     "dependent": "reader"
   },
   "lucide-react": {
     "wanted": "0.475.0",
-    "latest": "0.560.0",
+    "latest": "0.562.0",
     "dependent": "reader"
   },
   "next": {
@@ -196,7 +196,7 @@
   },
   "react-day-picker": {
     "wanted": "8.10.1",
-    "latest": "9.12.0",
+    "latest": "9.13.0",
     "dependent": "reader"
   },
   "react-dom": {
@@ -205,13 +205,13 @@
     "dependent": "reader"
   },
   "react-hook-form": {
-    "wanted": "7.68.0",
-    "latest": "7.68.0",
+    "wanted": "7.70.0",
+    "latest": "7.70.0",
     "dependent": "reader"
   },
   "recharts": {
     "wanted": "2.15.4",
-    "latest": "3.5.1",
+    "latest": "3.6.0",
     "dependent": "reader"
   },
   "tailwind-merge": {
@@ -236,7 +236,7 @@
   },
   "zod": {
     "wanted": "3.25.76",
-    "latest": "4.1.13",
+    "latest": "4.3.4",
     "dependent": "reader"
   }
 }
