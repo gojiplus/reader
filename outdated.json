@@ -1,122 +1,122 @@
 {
   "@genkit-ai/googleai": {
-    "wanted": "1.25.0",
-    "latest": "1.25.0",
+    "wanted": "1.28.0",
+    "latest": "1.28.0",
     "dependent": "reader"
   },
   "@genkit-ai/next": {
-    "wanted": "1.25.0",
-    "latest": "1.25.0",
+    "wanted": "1.40.0",
+    "latest": "1.40.0",
     "dependent": "reader"
   },
   "@hookform/resolvers": {
     "wanted": "4.1.3",
-    "latest": "5.2.2",
+    "latest": "5.4.0",
     "dependent": "reader"
   },
   "@radix-ui/react-accordion": {
-    "wanted": "1.2.12",
-    "latest": "1.2.12",
+    "wanted": "1.2.17",
+    "latest": "1.2.17",
     "dependent": "reader"
   },
   "@radix-ui/react-alert-dialog": {
-    "wanted": "1.1.15",
-    "latest": "1.1.15",
+    "wanted": "1.1.20",
+    "latest": "1.1.20",
     "dependent": "reader"
   },
   "@radix-ui/react-avatar": {
-    "wanted": "1.1.11",
-    "latest": "1.1.11",
+    "wanted": "1.2.3",
+    "latest": "1.2.3",
     "dependent": "reader"
   },
   "@radix-ui/react-checkbox": {
-    "wanted": "1.3.3",
-    "latest": "1.3.3",
-    "dependent": "reader"
-  },
-  "@radix-ui/react-dialog": {
-    "wanted": "1.1.15",
-    "latest": "1.1.15",
-    "dependent": "reader"
-  },
-  "@radix-ui/react-dropdown-menu": {
-    "wanted": "2.1.16",
-    "latest": "2.1.16",
-    "dependent": "reader"
-  },
-  "@radix-ui/react-label": {
-    "wanted": "2.1.8",
-    "latest": "2.1.8",
-    "dependent": "reader"
-  },
-  "@radix-ui/react-menubar": {
-    "wanted": "1.1.16",
-    "latest": "1.1.16",
-    "dependent": "reader"
-  },
-  "@radix-ui/react-popover": {
-    "wanted": "1.1.15",
-    "latest": "1.1.15",
-    "dependent": "reader"
-  },
-  "@radix-ui/react-progress": {
-    "wanted": "1.1.8",
-    "latest": "1.1.8",
-    "dependent": "reader"
-  },
-  "@radix-ui/react-radio-group": {
     "wanted": "1.3.8",
     "latest": "1.3.8",
     "dependent": "reader"
   },
-  "@radix-ui/react-scroll-area": {
-    "wanted": "1.2.10",
-    "latest": "1.2.10",
+  "@radix-ui/react-dialog": {
+    "wanted": "1.1.20",
+    "latest": "1.1.20",
     "dependent": "reader"
   },
-  "@radix-ui/react-select": {
-    "wanted": "2.2.6",
-    "latest": "2.2.6",
+  "@radix-ui/react-dropdown-menu": {
+    "wanted": "2.1.21",
+    "latest": "2.1.21",
     "dependent": "reader"
   },
-  "@radix-ui/react-separator": {
-    "wanted": "1.1.8",
-    "latest": "1.1.8",
+  "@radix-ui/react-label": {
+    "wanted": "2.1.12",
+    "latest": "2.1.12",
     "dependent": "reader"
   },
-  "@radix-ui/react-slider": {
-    "wanted": "1.3.6",
-    "latest": "1.3.6",
+  "@radix-ui/react-menubar": {
+    "wanted": "1.1.21",
+    "latest": "1.1.21",
     "dependent": "reader"
   },
-  "@radix-ui/react-slot": {
-    "wanted": "1.2.4",
-    "latest": "1.2.4",
+  "@radix-ui/react-popover": {
+    "wanted": "1.1.20",
+    "latest": "1.1.20",
     "dependent": "reader"
   },
-  "@radix-ui/react-switch": {
-    "wanted": "1.2.6",
-    "latest": "1.2.6",
-    "dependent": "reader"
-  },
-  "@radix-ui/react-tabs": {
+  "@radix-ui/react-progress": {
     "wanted": "1.1.13",
     "latest": "1.1.13",
     "dependent": "reader"
   },
-  "@radix-ui/react-toast": {
+  "@radix-ui/react-radio-group": {
+    "wanted": "1.4.4",
+    "latest": "1.4.4",
+    "dependent": "reader"
+  },
+  "@radix-ui/react-scroll-area": {
     "wanted": "1.2.15",
     "latest": "1.2.15",
     "dependent": "reader"
   },
+  "@radix-ui/react-select": {
+    "wanted": "2.3.4",
+    "latest": "2.3.4",
+    "dependent": "reader"
+  },
+  "@radix-ui/react-separator": {
+    "wanted": "1.1.12",
+    "latest": "1.1.12",
+    "dependent": "reader"
+  },
+  "@radix-ui/react-slider": {
+    "wanted": "1.4.4",
+    "latest": "1.4.4",
+    "dependent": "reader"
+  },
+  "@radix-ui/react-slot": {
+    "wanted": "1.3.0",
+    "latest": "1.3.0",
+    "dependent": "reader"
+  },
+  "@radix-ui/react-switch": {
+    "wanted": "1.3.4",
+    "latest": "1.3.4",
+    "dependent": "reader"
+  },
+  "@radix-ui/react-tabs": {
+    "wanted": "1.1.18",
+    "latest": "1.1.18",
+    "dependent": "reader"
+  },
+  "@radix-ui/react-toast": {
+    "wanted": "1.2.20",
+    "latest": "1.2.20",
+    "dependent": "reader"
+  },
   "@radix-ui/react-tooltip": {
-    "wanted": "1.2.8",
-    "latest": "1.2.8",
+    "wanted": "1.2.13",
+    "latest": "1.2.13",
     "dependent": "reader"
   },
   "@radix-ui/react-visually-hidden": {
-    "wanted": "1.2.4",
-    "latest": "1.2.4",
+    "wanted": "1.2.8",
+    "latest": "1.2.8",
     "dependent": "reader"
   },
   "@tanstack-query-firebase/react": {
@@ -125,8 +125,8 @@
     "dependent": "reader"
   },
   "@tanstack/react-query": {
-    "wanted": "5.90.12",
-    "latest": "5.90.12",
+    "wanted": "5.101.2",
+    "latest": "5.101.2",
     "dependent": "reader"
   },
   "class-variance-authority": {
@@ -141,37 +141,37 @@
   },
   "date-fns": {
     "wanted": "3.6.0",
-    "latest": "4.1.0",
+    "latest": "4.4.0",
     "dependent": "reader"
   },
   "firebase": {
     "wanted": "11.10.0",
-    "latest": "12.6.0",
+    "latest": "12.16.0",
     "dependent": "reader"
   },
   "firebase-admin": {
     "wanted": "12.7.0",
-    "latest": "13.6.0",
+    "latest": "13.10.0",
     "dependent": "reader"
   },
   "geist": {
-    "wanted": "1.5.1",
-    "latest": "1.5.1",
+    "wanted": "1.7.2",
+    "latest": "1.7.2",
     "dependent": "reader"
   },
   "genkit": {
-    "wanted": "1.25.0",
-    "latest": "1.25.0",
+    "wanted": "1.40.0",
+    "latest": "1.40.0",
     "dependent": "reader"
   },
   "lucide-react": {
     "wanted": "0.475.0",
-    "latest": "0.560.0",
+    "latest": "1.25.0",
     "dependent": "reader"
   },
   "next": {
     "wanted": "15.5.9",
-    "latest": "15.5.9",
+    "latest": "15.5.20",
     "dependent": "reader"
   },
   "node-gtts": {
@@ -191,32 +191,32 @@
   },
   "react": {
     "wanted": "18.3.1",
-    "latest": "19.2.3",
+    "latest": "19.2.7",
     "dependent": "reader"
   },
   "react-day-picker": {
-    "wanted": "8.10.1",
-    "latest": "9.12.0",
+    "wanted": "8.10.2",
+    "latest": "10.0.1",
     "dependent": "reader"
   },
   "react-dom": {
     "wanted": "18.3.1",
-    "latest": "19.2.3",
+    "latest": "19.2.7",
     "dependent": "reader"
   },
   "react-hook-form": {
-    "wanted": "7.68.0",
-    "latest": "7.68.0",
+    "wanted": "7.82.0",
+    "latest": "7.82.0",
     "dependent": "reader"
   },
   "recharts": {
     "wanted": "2.15.4",
-    "latest": "3.5.1",
+    "latest": "3.9.2",
     "dependent": "reader"
   },
   "tailwind-merge": {
-    "wanted": "3.4.0",
-    "latest": "3.4.0",
+    "wanted": "3.6.0",
+    "latest": "3.6.0",
     "dependent": "reader"
   },
   "tailwindcss-animate": {
@@ -225,8 +225,8 @@
     "dependent": "reader"
   },
   "web-vitals": {
-    "wanted": "5.1.0",
-    "latest": "5.1.0",
+    "wanted": "5.3.0",
+    "latest": "5.3.0",
     "dependent": "reader"
   },
   "word-list": {
@@ -236,7 +236,7 @@
   },
   "zod": {
     "wanted": "3.25.76",
-    "latest": "4.1.13",
+    "latest": "4.4.3",
     "dependent": "reader"
   }
 }
