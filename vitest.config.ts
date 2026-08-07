@@ -19,15 +19,12 @@ export default defineConfig({
       'coverage/**',
       '**/*.d.ts',
     ],
-    // Optimize memory usage - use threads with minimal workers
+    // Optimize memory usage - one worker at a time. vitest 4 removed
+    // poolOptions/Tinypool; singleThread/maxThreads collapse into maxWorkers.
+    // Threads (not the new 'forks' default) so the --max-old-space-size in the
+    // test script governs one shared heap.
     pool: 'threads',
-    poolOptions: {
-      threads: {
-        singleThread: true,
-        maxThreads: 1,
-        minThreads: 1,
-      },
-    },
+    maxWorkers: 1,
     // Increase timeout and reduce memory pressure
     testTimeout: 10000,
     teardownTimeout: 5000,
@@ -40,8 +37,11 @@ export default defineConfig({
     snapshotFormat: {
       printBasicPrototype: false,
     },
-    // Coverage configuration to avoid scanning node_modules
+    // Coverage configuration to avoid scanning node_modules.
+    // lcov is not in vitest's default reporter set, and it is what the
+    // Codecov step in ci.yml uploads.
     coverage: {
+      reporter: ['text', 'lcov'],
       exclude: [
         'node_modules/**',
         '**/node_modules/**',

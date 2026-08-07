@@ -1,0 +1,35 @@
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: '/'
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    # Grouped so a week of bumps is one or two PRs to review, not fifteen.
+    # Major production bumps stay ungrouped and get their own PR.
+    groups:
+      radix-ui:
+        patterns:
+          - '@radix-ui/*'
+      dev-dependencies:
+        dependency-type: development
+      production-minor-patch:
+        dependency-type: production
+        update-types:
+          - minor
+          - patch
+
+  # Workflow actions go stale silently; this is what would have caught the
+  # Node 20 deprecation on checkout/setup-node before it became an annotation
+  # on every run.
+  - package-ecosystem: github-actions
+    directory: '/'
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      actions:
+        patterns:
+          - '*'
