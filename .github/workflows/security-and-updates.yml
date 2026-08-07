@@ -88,7 +88,7 @@ jobs:
   dependency-updates:
     name: Update Dependencies
     runs-on: ubuntu-latest
-    if: github.event_name == 'schedule'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
 
     steps:
       - name: Checkout code
@@ -105,27 +105,32 @@ jobs:
       - name: Check for updates
         id: updates
         run: |
-          npm outdated --json > outdated.json || true
-          if [ -s outdated.json ]; then
-            echo "updates_available=true" >> $GITHUB_OUTPUT
+          # Written to RUNNER_TEMP, not the repo, so it can never dirty
+          # git status or get swept into the PR.
+          npm outdated --json > "$RUNNER_TEMP/outdated.json" || true
+          # `npm outdated --json` prints {} when nothing is outdated, so a
+          # bare -s test is always true.
+          if [ -s "$RUNNER_TEMP/outdated.json" ] &&
+             [ "$(tr -d '[:space:]' < "$RUNNER_TEMP/outdated.json")" != '{}' ]; then
+            echo "updates_available=true" >> "$GITHUB_OUTPUT"
           else
-            echo "updates_available=false" >> $GITHUB_OUTPUT
+            echo "updates_available=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Update minor and patch versions
+      - name: Update patch versions
+        id: patch_updates
         if: steps.updates.outputs.updates_available == 'true'
         run: |
-          # Update patch versions (safe)
-          npx npm-check-updates -u --target patch
+          npx --yes npm-check-updates -u --target patch
           npm install
 
-          # Check if changes were made
-          if [ -n "$(git status --porcelain)" ]; then
-            echo "changes_made=true" >> $GITHUB_OUTPUT
+          # Scoped to the two manifests so changes_made reflects only what
+          # the PR would actually contain.
+          if [ -n "$(git status --porcelain -- package.json package-lock.json)" ]; then
+            echo "changes_made=true" >> "$GITHUB_OUTPUT"
           else
-            echo "changes_made=false" >> $GITHUB_OUTPUT
+            echo "changes_made=false" >> "$GITHUB_OUTPUT"
           fi
-        id: patch_updates
 
       - name: Run tests after updates
         if: steps.patch_updates.outputs.changes_made == 'true'
@@ -161,3 +166,7 @@ jobs:
             Please review the changes before merging.
           branch: 'automated/dependency-updates'
           delete-branch: true
+          # Hard guarantee the PR contains nothing but the manifests.
+          add-paths: |
+            package.json
+            package-lock.json
