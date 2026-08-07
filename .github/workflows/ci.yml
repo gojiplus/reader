@@ -117,6 +117,9 @@ jobs:
           path: |
             .next/
             !.next/cache/
+          # .next is a dotfile directory, and upload-artifact skips hidden
+          # paths by default -- without this the artifact is empty.
+          include-hidden-files: true
           retention-days: 1
 
   security-scan:
@@ -128,7 +131,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@0.36.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: 'fs'
           scan-ref: '.'
