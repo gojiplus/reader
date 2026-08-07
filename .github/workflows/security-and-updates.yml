@@ -51,10 +51,6 @@ jobs:
     name: CodeQL Security Analysis
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        language: ['javascript', 'typescript']
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -62,7 +58,9 @@ jobs:
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
         with:
-          languages: ${{ matrix.language }}
+          # CodeQL treats JS and TS as one language; listing both duplicated
+          # every alert and doubled the runtime.
+          languages: javascript-typescript
 
       - name: Setup Node.js
         uses: actions/setup-node@v7
