@@ -142,7 +142,7 @@ export const BookContent = ({ selectedBook, textExtractionState }: Props) => {
           !selectedBook.textContent &&
           selectedBook.contentType === 'application/pdf' && (
             <p className='text-sm text-muted-foreground p-4 text-center'>
-              Click 'Load Text' or enable automatic loading.
+              Click &lsquo;Load Text&rsquo; or enable automatic loading.
             </p>
           )}
       </CardContent>

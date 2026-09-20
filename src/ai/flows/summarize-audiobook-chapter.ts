@@ -41,7 +41,6 @@ function hasValidSummary(output: unknown): output is AIResponseOutput & { summar
   );
 }
 
-// eslint-disable-next-line require-await
 export async function summarizeAudiobookChapter(
   input: SummarizeAudiobookChapterInput
 ): Promise<SummarizeAudiobookChapterOutput> {
@@ -126,7 +125,7 @@ function createSummarizeAudiobookChapterFlow() {
               error.details.includes('API_KEY_INVALID'))
           ) {
             errorMessage =
-              'Google AI API key not valid. Please check your GOOGLE_GENAI_API_KEY configuration in .env.local and ensure the Genkit server was restarted after changes.';
+              'Google AI API key not valid. Check GEMINI_API_KEY in .env.local and restart the server.';
           } else if (
             error.message.includes('fetch failed') ||
             error.message.includes('ECONNREFUSED')

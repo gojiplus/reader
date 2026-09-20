@@ -3,13 +3,6 @@ import CopyPlugin from 'copy-webpack-plugin';
 import path from 'path';
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   images: {
     remotePatterns: [
       {
@@ -20,11 +13,9 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
-    // Add copy plugin to copy pdf.worker.min.mjs to static assets
-    // This makes it available at /_next/static/chunks/pdf.worker.min.mjs
+  webpack: (config, { isServer }) => {
     if (!isServer) {
-      config.plugins ??= []; // Ensure plugins array exists
+      config.plugins ??= [];
       config.plugins.push(
         new CopyPlugin({
           patterns: [
@@ -33,14 +24,12 @@ const nextConfig: NextConfig = {
                 path.dirname(require.resolve('pdfjs-dist/package.json')),
                 'build/pdf.worker.min.mjs'
               ),
-              to: path.join(config.output.path || '', 'static/chunks'), // Destination in the build output
+              to: path.join(config.output.path || '', 'static/chunks'),
             },
           ],
         })
       );
     }
-
-    // Important: return the modified config
     return config;
   },
 };

@@ -1,4 +1,4 @@
-import { Book, Trash2, Headphones } from 'lucide-react';
+import { Book, Trash2 } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -74,12 +74,6 @@ export const BookList = ({
             >
               <Book className='h-4 w-4 mr-2 flex-shrink-0 group-data-[collapsible=icon]:mr-0' />
               <span className='flex-grow ml-1 group-data-[collapsible=icon]'>{book.name}</span>
-              {book.audioStorageUrl && (
-                <Headphones
-                  className='h-3 w-3 ml-auto text-muted-foreground flex-shrink-0 group-data-[collapsible=icon]:hidden'
-                  aria-label='Generated audio available'
-                />
-              )}
             </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -96,9 +90,8 @@ export const BookList = ({
                 <AlertDialogHeader>
                   <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This action cannot be undone. This will permanently delete "{book.name}"{' '}
-                    {book.audioStorageUrl ? 'and its associated audio file ' : ''}from Firestore and
-                    Storage.
+                    This action cannot be undone. This will permanently delete &ldquo;{book.name}
+                    &rdquo; from Firestore and Storage.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
