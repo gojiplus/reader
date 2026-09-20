@@ -58,7 +58,6 @@ export type GenerateQuizQuestionsOutput = z.infer<typeof GenerateQuizQuestionsOu
 
 const logger = createComponentLogger('GenerateQuizQuestions');
 
-// eslint-disable-next-line require-await
 export async function generateQuizQuestions(
   input: GenerateQuizQuestionsInput
 ): Promise<GenerateQuizQuestionsOutput> {
@@ -204,7 +203,7 @@ Output ONLY a valid JSON object matching this structure:
               error.details.includes('API_KEY_INVALID'))
           ) {
             errorMessage =
-              'Google AI API key not valid. Please check your GOOGLE_GENAI_API_KEY configuration in .env.local and ensure the Genkit server was restarted after changes.';
+              'Google AI API key not valid. Check GEMINI_API_KEY in .env.local and restart the server.';
           } else if (error.message.includes('invalid quiz data format')) {
             errorMessage = error.message; // Propagate the specific validation error
           } else if (

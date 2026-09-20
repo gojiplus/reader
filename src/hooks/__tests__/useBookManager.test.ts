@@ -38,8 +38,6 @@ describe.skip('useBookManager', () => {
     expect(result.current).toHaveProperty('booksLoading');
     expect(result.current).toHaveProperty('selectedBook');
     expect(result.current).toHaveProperty('setSelectedBook');
-    expect(result.current).toHaveProperty('audioState');
-    expect(result.current).toHaveProperty('setAudioState');
     expect(result.current).toHaveProperty('textExtractionState');
     expect(result.current).toHaveProperty('setTextExtractionState');
     expect(result.current).toHaveProperty('handleBookUpload');
@@ -49,7 +47,6 @@ describe.skip('useBookManager', () => {
     expect(Array.isArray(result.current.books)).toBe(true);
     expect(typeof result.current.booksLoading).toBe('boolean');
     expect(result.current.selectedBook).toBe(null);
-    expect(typeof result.current.audioState).toBe('object');
     expect(typeof result.current.textExtractionState).toBe('object');
     expect(typeof result.current.handleBookUpload).toBe('function');
     expect(typeof result.current.handleDeleteBook).toBe('function');

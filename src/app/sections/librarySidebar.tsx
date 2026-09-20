@@ -44,7 +44,7 @@ export const LibrarySidebar = ({
         <div className='flex items-center gap-2'>
           <AudioLines className='h-6 w-6 text-primary' />
           <h1 className='text-xl font-semibold text-foreground group-data-[collapsible=icon]:hidden'>
-            AudioBook Buddy
+            Reader
           </h1>
         </div>
         {mounted && isMobile && (

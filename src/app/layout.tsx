@@ -7,9 +7,8 @@ import { Toaster } from '@/components/ui/toaster'; // Import Toaster
 import { AuthProvider } from '@/contexts/AuthContext'; // Import AuthProvider
 
 export const metadata: Metadata = {
-  title: 'AudioBook Buddy',
-  description: 'Convert PDFs and ePUBs to audiobooks with AI summaries and quizzes.',
-  manifest: '/manifest.json', // PWA manifest link
+  title: 'Reader',
+  description: 'Read and listen to PDFs with summaries, quizzes, and explanations.',
 };
 
 // Define a type for the props if needed, although Next.js handles it automatically

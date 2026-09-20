@@ -3,7 +3,7 @@
 import { signOut } from 'firebase/auth';
 import { Loader2, ArrowLeft, LogIn, AudioLines } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import LibrarySidebar from '@/app/sections/librarySidebar';
 import ReaderView from '@/app/sections/readerView';
 import { PerformanceDebugger } from '@/components/PerformanceDebugger';
@@ -29,8 +29,6 @@ function AppContent() {
   const { handleError } = useErrorHandler('AudiobookApp');
 
   const [mounted, setMounted] = useState(false);
-  const audioPlayerRef = useRef<HTMLAudioElement>(null);
-
   // Custom hooks for state management
   const {
     books,
@@ -113,7 +111,7 @@ function AppContent() {
       <div className='min-h-screen flex items-center justify-center'>
         <div className='text-center space-y-4'>
           <LogIn className='h-16 w-16 mx-auto text-muted-foreground' />
-          <h1 className='text-2xl font-bold'>Welcome to AudioBook Buddy</h1>
+          <h1 className='text-2xl font-bold'>Welcome to Reader</h1>
           <p className='text-muted-foreground max-w-md'>
             Please log in to access your audiobook library and continue reading.
           </p>
@@ -138,7 +136,7 @@ function AppContent() {
             )}
             <div className='flex items-center gap-2'>
               <AudioLines className='h-6 w-6' />
-              <h1 className='font-semibold'>AudioBook Buddy</h1>
+              <h1 className='font-semibold'>Reader</h1>
             </div>
           </div>
           <div className='ml-auto flex items-center gap-2'>
@@ -172,7 +170,7 @@ function AppContent() {
                 <AudioLines className='h-16 w-16 mx-auto text-muted-foreground' />
                 <h2 className='text-2xl font-bold'>Your Audiobook Library</h2>
                 <p className='text-muted-foreground max-w-md'>
-                  Select a book from the sidebar to start reading, or upload a new PDF or EPUB file.
+                  Select a book from the sidebar to start reading, or upload a PDF.
                 </p>
               </div>
             </div>
@@ -180,8 +178,6 @@ function AppContent() {
             <ReaderView
               selectedBook={selectedBook}
               textExtractionState={textExtractionState}
-              setSelectedBook={setSelectedBook}
-              audioPlayerRef={audioPlayerRef}
               onBack={() => goToLibrary()}
               viewMode={viewMode}
               mounted={mounted}
@@ -196,10 +192,6 @@ function AppContent() {
           )}
         </SidebarInset>
       </div>
-
-      {/* Hidden Audio Player */}
-      <audio ref={audioPlayerRef} style={{ display: 'none' }} />
-
       {/* Performance Debugger (development only) */}
       <PerformanceDebugger />
     </div>

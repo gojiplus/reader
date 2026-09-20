@@ -18,7 +18,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useErrorHandler, ErrorCategory } from '@/lib/error-handler';
 import { db, storage } from '@/lib/firebase/clientApp';
-import { AudioGenerationState, BookItem, TextExtractionState } from '@/lib/interfaces';
+import { BookItem, TextExtractionState } from '@/lib/interfaces';
 import { createComponentLogger } from '@/lib/logger';
 
 const logger = createComponentLogger('useBookManager');
@@ -31,11 +31,6 @@ export const useBookManager = () => {
   const [books, setBooks] = useState<BookItem[]>([]);
   const [booksLoading, setBooksLoading] = useState(true);
   const [selectedBook, setSelectedBook] = useState<BookItem | null>(null);
-  const [audioState, setAudioState] = useState<AudioGenerationState>({
-    loading: false,
-    error: null,
-    audioUrl: null,
-  });
   const [textExtractionState, setTextExtractionState] = useState<TextExtractionState>({
     loading: false,
     error: null,
@@ -64,7 +59,6 @@ export const useBookManager = () => {
             ...doc.data(),
             // textContent is loaded on demand, don't expect it from snapshot initially
             textContent: undefined, // Explicitly undefined until loaded
-            audioStorageUrl: doc.data().audioStorageUrl || undefined, // Get audio URL
             createdAt: doc.data().createdAt || serverTimestamp(),
           })) as BookItem[];
 
@@ -116,14 +110,6 @@ export const useBookManager = () => {
     };
   }, [user, authLoading, toast, handleError]);
 
-  // Update audio state when selected book changes
-  useEffect(() => {
-    setAudioState(prev => ({
-      ...prev,
-      audioUrl: selectedBook?.audioStorageUrl || null,
-    }));
-  }, [selectedBook]);
-
   const handleBookUpload = useCallback(
     async (fileMetadata: FileUploadMetadata) => {
       if (!user || !db) {
@@ -153,7 +139,6 @@ export const useBookManager = () => {
           userId: user.uid,
           createdAt: serverTimestamp(),
           textContent: undefined, // Will be loaded on demand
-          audioStorageUrl: undefined, // Will be set when audio is generated
         };
 
         await addDoc(collection(db, 'books'), newBook);
@@ -206,12 +191,6 @@ export const useBookManager = () => {
         const fileRef = ref(storage, bookToDelete.storageUrl);
         await deleteObject(fileRef);
 
-        // Delete audio file if it exists
-        if (bookToDelete.audioStorageUrl) {
-          const audioRef = ref(storage, bookToDelete.audioStorageUrl);
-          await deleteObject(audioRef);
-        }
-
         logger.info(`Book deleted successfully: ${bookToDelete.title}`);
 
         toast({
@@ -245,8 +224,6 @@ export const useBookManager = () => {
     booksLoading,
     selectedBook,
     setSelectedBook,
-    audioState,
-    setAudioState,
     textExtractionState,
     setTextExtractionState,
     handleBookUpload,

@@ -1,4 +1,3 @@
-import { doc, updateDoc } from 'firebase/firestore'; // Firestore functions
 import {
   Play,
   Pause,
@@ -9,7 +8,6 @@ import {
   Check,
   X,
   Headphones,
-  AudioLines,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import {
@@ -30,9 +28,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import usePreviousValue from '@/hooks/usePreviousValue';
-import { db, auth, storage } from '@/lib/firebase/clientApp'; // Import Storage too
 import {
-  AudioGenerationState,
   BookItem,
   QuizState,
   SummaryState,
@@ -51,9 +47,7 @@ import {
 
 interface Props {
   selectedBook: BookItem | null;
-  setSelectedBook: React.Dispatch<React.SetStateAction<BookItem | null>>;
   textExtractionState: TextExtractionState;
-  audioPlayerRef: React.Ref<HTMLAudioElement>;
   viewMode: ViewMode;
 }
 
@@ -67,13 +61,7 @@ function hasDigest(error: unknown): error is { digest: string } {
   );
 }
 
-export const AiCard = ({
-  selectedBook,
-  setSelectedBook,
-  textExtractionState,
-  audioPlayerRef,
-  viewMode,
-}: Props) => {
+export const AiCard = ({ selectedBook, textExtractionState, viewMode }: Props) => {
   const { user } = useAuth();
   const previousBook = usePreviousValue<BookItem | null>(selectedBook);
 
@@ -81,12 +69,6 @@ export const AiCard = ({
   const [userAnswers, setUserAnswers] = useState<UserAnswers>({});
   const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [quizScore, setQuizScore] = useState<number | null>(null);
-  const [audioState, setAudioState] = useState<AudioGenerationState>({
-    loading: false,
-    error: null,
-    audioUrl: selectedBook?.audioStorageUrl || null,
-  });
-
   // State for Browser TTS
   const [isSpeakingState, setIsSpeakingState] = useState(false);
   const [isPausedState, setIsPausedState] = useState(false);
@@ -111,7 +93,6 @@ export const AiCard = ({
       setSummaryState({ loading: false, data: null, error: null });
       setQuizState({ loading: false, data: null, error: null });
       setUserAnswers({});
-      setAudioState({ loading: false, error: null, audioUrl: null });
       setQuizSubmitted(false);
       setQuizScore(null);
     }
@@ -375,130 +356,6 @@ export const AiCard = ({
     }
   };
 
-  // --- Audio Generation Handler ---
-  const handleGenerateAudio = async () => {
-    if (
-      !selectedBook?.textContent ||
-      textExtractionState.loading ||
-      textExtractionState.error ||
-      selectedBook.textContent.startsWith('Error loading text:')
-    ) {
-      toast({
-        variant: 'default',
-        title: 'No Text Available',
-        description: 'Load or finish loading valid text content before generating audio file.',
-      });
-      return;
-    }
-    if (!selectedBook.id || !user || !db || !storage || !auth) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Required services unavailable for audio generation.',
-      });
-      return;
-    }
-
-    setAudioState({ loading: true, error: null, audioUrl: null });
-    toast({ title: 'Starting Audio Generation', description: 'Sending text to server...' });
-
-    try {
-      // Get the Firebase Auth ID token for the current user
-      const idToken = await user.getIdToken();
-
-      console.warn(
-        `[Client] Sending audio generation request for bookId: ${selectedBook.id}, text length: ${selectedBook.textContent.length}`
-      );
-
-      // Call the API route
-      const response = await fetch('/api/generate-audio', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${idToken}`, // Include the auth token
-        },
-        body: JSON.stringify({
-          text: selectedBook.textContent,
-          bookId: selectedBook.id,
-        }),
-      });
-
-      console.warn(`[Client] API response status: ${response.status}`);
-
-      if (!response.ok) {
-        let errorData = { error: 'Unknown error from server' };
-        try {
-          errorData = await response.json();
-          // Log the detailed error from the server if available
-          console.error(`[Client] Server Error Response (${response.status}):`, errorData);
-        } catch (parseError) {
-          console.error('[Client] Failed to parse error response JSON:', parseError);
-          // Get raw text if JSON parsing fails
-          const rawErrorText = await response.text();
-          console.error('[Client] Raw Server Error Response Text:', rawErrorText);
-          errorData.error = `Server error ${response.status}. Response body could not be parsed.`;
-        }
-        // Throw a new error including the status and message from the server if available
-        throw new Error(
-          `Server responded with ${response.status}: ${errorData.error || 'Failed to generate audio'}`
-        );
-      }
-
-      const data = await response.json();
-      const generatedAudioUrl = data.audioUrl;
-
-      if (!generatedAudioUrl) {
-        console.error('[Client] API response missing audioUrl:', data);
-        throw new Error('Server did not return a valid audio URL.');
-      }
-
-      console.warn(`[Client] Received audio URL: ${generatedAudioUrl}`);
-
-      // Update Firestore with the new audio storage URL
-      const bookRef = doc(db, 'books', selectedBook.id);
-      // Client-side ownership check (redundant if rules are correct, but good practice)
-      if (selectedBook.userId !== user.uid) {
-        throw new Error('Permission denied: You do not own this book.');
-      }
-
-      try {
-        await updateDoc(bookRef, { audioStorageUrl: generatedAudioUrl });
-        console.warn(`[Firestore] Updated audioStorageUrl for book ${selectedBook.id}`);
-
-        // Update local state immediately for responsiveness
-        setSelectedBook(prev => {
-          if (prev && prev.id === selectedBook.id) {
-            return { ...prev, audioStorageUrl: generatedAudioUrl };
-          }
-          return prev; // Don't update if selection changed
-        });
-        setAudioState({ loading: false, error: null, audioUrl: generatedAudioUrl });
-        toast({
-          title: 'Audio Generated',
-          description: `Audio file created and saved.`,
-        });
-      } catch (updateError) {
-        console.error('[Firestore] update failed for audio URL:', updateError);
-        if (updateError instanceof Error && updateError.message.includes('permission-denied')) {
-          throw new Error('Permission denied: Failed to update book data. Check Firestore rules.');
-        }
-        throw new Error('Failed to save audio file reference to the database.');
-      }
-    } catch (error) {
-      console.error('[Audio Gen] Error generating audio (client-side):', error);
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : 'An unknown error occurred during audio generation.';
-      setAudioState({ loading: false, error: errorMessage, audioUrl: null });
-      toast({
-        variant: 'destructive',
-        title: 'Audio Generation Failed',
-        description: errorMessage,
-      });
-    }
-  };
-
   // --- Quiz Interaction Handlers ---
 
   const handleAnswerChange = (questionIndex: number, selectedOption: string) => {
@@ -577,73 +434,6 @@ export const AiCard = ({
               {typeof window !== 'undefined' && !window.speechSynthesis && (
                 <p className='text-sm text-destructive text-center mt-2'>TTS not supported.</p>
               )}
-            </AccordionContent>
-          </AccordionItem>
-
-          {/* Audio Generation Section */}
-          <AccordionItem value='generate-audio'>
-            <AccordionTrigger>
-              <div className='flex items-center gap-2 w-full'>
-                <AudioLines className='h-5 w-5 flex-shrink-0' />
-                <span className='flex-grow text-left'>Generated Audio File</span>
-                {audioState.loading && (
-                  <Loader2 className='h-4 w-4 animate-spin text-muted-foreground ml-auto' />
-                )}
-              </div>
-            </AccordionTrigger>
-            <AccordionContent>
-              {audioState.error && (
-                <p className='text-sm text-destructive break-words'>{audioState.error}</p>
-              )}
-              {/* Check audioState.audioUrl or selectedBook.audioStorageUrl */}
-              {(audioState.audioUrl || selectedBook?.audioStorageUrl) && !audioState.loading && (
-                <div className='text-sm text-center py-2 space-y-2'>
-                  <p>Audio file available.</p>
-                  {/* Provide a link or embedded player */}
-                  <audio
-                    controls
-                    src={audioState.audioUrl || selectedBook?.audioStorageUrl || ''}
-                    ref={audioPlayerRef}
-                    className='w-full mt-2'
-                  >
-                    Your browser does not support the audio element.
-                    <a
-                      href={audioState.audioUrl || selectedBook?.audioStorageUrl || ''}
-                      target='_blank'
-                      rel='noopener noreferrer'
-                    >
-                      Download Audio
-                    </a>
-                  </audio>
-                  <p className='text-xs text-muted-foreground mt-1'>
-                    (File stored in Firebase Storage)
-                  </p>
-                </div>
-              )}
-              {!audioState.loading && (
-                <Button
-                  onClick={handleGenerateAudio}
-                  size='sm'
-                  className='w-full mt-2'
-                  disabled={
-                    !selectedBook?.textContent ||
-                    audioState.loading ||
-                    textExtractionState.loading ||
-                    Boolean(textExtractionState.error) ||
-                    selectedBook.textContent.startsWith('Error loading text:') ||
-                    !user
-                  }
-                >
-                  {audioState.loading
-                    ? 'Generating...'
-                    : audioState.audioUrl || selectedBook?.audioStorageUrl
-                      ? 'Regenerate Audio File'
-                      : 'Generate Audio File'}
-                </Button>
-              )}
-              <p className='text-xs text-muted-foreground mt-2 text-center'>
-                Note: Generates an audio file using server-side TTS. Requires loaded text content.
-              </p>
             </AccordionContent>
           </AccordionItem>
 
