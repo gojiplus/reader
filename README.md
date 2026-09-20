@@ -7,7 +7,7 @@ Reader turns uploaded PDFs into a private reading and listening workspace. It ex
 - Email/password authentication with Firebase Authentication
 - Per-user PDF storage and library metadata with Firebase Storage and Firestore
 - PDF text extraction with PDF.js
-- Browser text-to-speech with pause, resume, stop, and speed controls
+- Browser text-to-speech with pause, resume, and stop controls
 - Gemini summaries, quizzes, and sentence explanations
 - Responsive reader and library views
 
