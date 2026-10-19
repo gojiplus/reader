@@ -53,9 +53,7 @@ export async function convertFileToText(file: File, user: User): Promise<string>
   }
 
   if (file.type !== 'application/pdf') {
-    // TODO: Add support for ePUB if needed
     console.warn('File type not supported for text extraction:', file.type);
-    // Return a placeholder or throw error for non-PDFs for now
     return `File type (${file.type}) not currently supported for text extraction. Only PDF is implemented.`;
   }
 
@@ -145,5 +143,3 @@ export async function convertFileToText(file: File, user: User): Promise<string>
     }
   }
 }
-
-// Note: ePUB conversion would require a separate library like epub.js and a similar extraction process.

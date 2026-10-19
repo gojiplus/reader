@@ -15,11 +15,6 @@ export type QuizState = {
   error: string | null;
 };
 export type UserAnswers = { [questionIndex: number]: string };
-export type AudioGenerationState = {
-  loading: boolean;
-  error: string | null;
-  audioUrl?: string | null;
-};
 export type TextExtractionState = { loading: boolean; error: string | null };
 export type ViewMode = 'library' | 'reader';
 
@@ -34,5 +29,4 @@ export interface BookItem {
   storageUrl: string; // URL in Firebase Storage
   textContent?: string; // Extracted text content (optional, loaded on demand)
   createdAt: Timestamp; // Firestore Timestamp
-  audioStorageUrl?: string; // URL for generated audio file in Storage
 }

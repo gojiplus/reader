@@ -174,7 +174,7 @@ const SidebarProvider = React.forwardRef<
               } as React.CSSProperties
             }
             className={cn(
-              'group/sidebar-wrapper flex min-h-svh has-[[data-variant=inset]]:bg-sidebar',
+              'group/sidebar-wrapper flex min-h-svh has-data-[variant=inset]:bg-sidebar',
               className
             )}
             ref={ref}
@@ -226,7 +226,7 @@ const Sidebar = React.forwardRef<
       return (
         <div
           className={cn(
-            'flex h-full w-[--sidebar-width] flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border', // Added border
+            'flex h-full w-(--sidebar-width) flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border', // Added border
             className
           )}
           ref={ref}
@@ -244,7 +244,7 @@ const Sidebar = React.forwardRef<
           <SheetContent
             data-sidebar='sidebar'
             data-mobile='true'
-            className='w-[--sidebar-width] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden'
+            className='w-(--sidebar-width) bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden'
             style={
               {
                 '--sidebar-width': SIDEBAR_WIDTH_MOBILE,
@@ -278,14 +278,14 @@ const Sidebar = React.forwardRef<
             'duration-200 relative h-svh bg-transparent transition-[width] ease-linear',
             // Adjust width based on state and collapsible mode
             'w-0', // Default to 0 width
-            'group-data-[state=expanded]:w-[--sidebar-width]', // Expanded width
+            'group-data-[state=expanded]:w-(--sidebar-width)', // Expanded width
             // Icon collapsed width - applies only if collapsible is 'icon'
-            'group-data-[collapsible=icon]:group-data-[state=collapsed]:w-[--sidebar-width-icon]',
+            'group-data-[state=collapsed]:group-data-[collapsible=icon]:w-(--sidebar-width-icon)',
             // Floating/Inset specific width adjustments for icon mode
             (variant === 'floating' || variant === 'inset') &&
-              'group-data-[collapsible=icon]:group-data-[state=collapsed]:w-[calc(var(--sidebar-width-icon)_+_theme(spacing.4))]',
+              'group-data-[state=collapsed]:group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4)))]',
             // Offcanvas collapsed width - applies only if collapsible is 'offcanvas'
-            'group-data-[collapsible=offcanvas]:group-data-[state=collapsed]:w-0', // Explicitly 0 for offcanvas collapsed
+            'group-data-[state=collapsed]:group-data-[collapsible=offcanvas]:w-0', // Explicitly 0 for offcanvas collapsed
 
             // Rotate for right side (doesn't affect width logic)
             'group-data-[side=right]:rotate-180'
@@ -300,20 +300,20 @@ const Sidebar = React.forwardRef<
 
             // --- Width based on state and collapsible mode ---
             'w-0', // Default width 0
-            'group-data-[state=expanded]:w-[--sidebar-width]', // Expanded width
+            'group-data-[state=expanded]:w-(--sidebar-width)', // Expanded width
 
             // Icon collapsed width
-            'group-data-[collapsible=icon]:group-data-[state=collapsed]:w-[--sidebar-width-icon]',
+            'group-data-[state=collapsed]:group-data-[collapsible=icon]:w-(--sidebar-width-icon)',
 
             // Offcanvas collapsed width and positioning
-            'group-data-[collapsible=offcanvas]:group-data-[state=collapsed]:w-[--sidebar-width]', // Keep width but move off-screen
+            'group-data-[state=collapsed]:group-data-[collapsible=offcanvas]:w-(--sidebar-width)', // Keep width but move off-screen
             side === 'left'
-              ? 'group-data-[collapsible=offcanvas]:group-data-[state=collapsed]:-left-[--sidebar-width]'
-              : 'group-data-[collapsible=offcanvas]:group-data-[state=collapsed]:-right-[--sidebar-width]',
+              ? 'group-data-[state=collapsed]:group-data-[collapsible=offcanvas]:-left-(--sidebar-width)'
+              : 'group-data-[state=collapsed]:group-data-[collapsible=offcanvas]:-right-(--sidebar-width)',
 
             // --- Adjustments for floating/inset variants in icon mode ---
             variant === 'floating' || variant === 'inset'
-              ? 'p-2 group-data-[collapsible=icon]:group-data-[state=collapsed]:w-[calc(var(--sidebar-width-icon)_+_theme(spacing.4)_+2px)]'
+              ? 'p-2 group-data-[state=collapsed]:group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]'
               : '', // No extra padding for default variant
 
             // --- Borders based on variant and side ---
@@ -331,7 +331,7 @@ const Sidebar = React.forwardRef<
               'flex h-full w-full flex-col bg-sidebar',
               // Styling for floating/inset variants
               (variant === 'floating' || variant === 'inset') &&
-                'rounded-lg border border-sidebar-border shadow'
+                'rounded-lg border border-sidebar-border shadow-sm'
             )}
           >
             {children}
@@ -403,9 +403,9 @@ const SidebarRail = React.forwardRef<HTMLButtonElement, React.ComponentProps<'bu
         title='Toggle Sidebar'
         className={cn(
           'absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-all ease-linear after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] hover:after:bg-sidebar-border group-data-[side=left]:-right-4 group-data-[side=right]:left-0 md:flex', // Changed sm:flex to md:flex
-          '[[data-side=left]_&]:cursor-w-resize [[data-side=right]_&]:cursor-e-resize',
+          'in-data-[side=left]:cursor-w-resize in-data-[side=right]:cursor-e-resize',
           '[[data-side=left][data-state=collapsed]_&]:cursor-e-resize [[data-side=right][data-state=collapsed]_&]:cursor-w-resize',
-          'group-data-[collapsible=offcanvas]:translate-x-0 group-data-[collapsible=offcanvas]:after:left-full group-data-[collapsible=offcanvas]:hover:bg-sidebar',
+          'group-data-[collapsible=offcanvas]:translate-x-0 group-data-[collapsible=offcanvas]:after:left-full hover:group-data-[collapsible=offcanvas]:bg-sidebar',
           '[[data-side=left][data-collapsible=offcanvas]_&]:-right-2',
           '[[data-side=right][data-collapsible=offcanvas]_&]:-left-2',
           className
@@ -436,28 +436,28 @@ const SidebarInset = React.forwardRef<HTMLDivElement, React.ComponentProps<'main
 
           // --- Desktop ---
           // Apply padding based on sidebar state ONLY when mounted and not mobile
-          // mounted && !isMobile && state === 'expanded' && "md:pl-[var(--sidebar-width)]", // Expanded padding
+          // mounted && !isMobile && state === 'expanded' && "md:pl-(--sidebar-width)", // Expanded padding
           // Apply padding for collapsed icon mode ONLY when mounted, not mobile, and collapsible is icon
-          // mounted && !isMobile && state === 'collapsed' && "md:pl-[var(--sidebar-width-icon)]", // Collapsed icon padding
+          // mounted && !isMobile && state === 'collapsed' && "md:pl-(--sidebar-width-icon)", // Collapsed icon padding
 
           // --- Inset Variant Specific Adjustments (Apply these ON TOP of the base padding) ---
-          'peer-data-[variant=inset]:min-h-[calc(100svh-theme(spacing.4))] md:peer-data-[variant=inset]:m-2',
+          'peer-data-[variant=inset]:min-h-[calc(100svh-(--spacing(4)))] md:peer-data-[variant=inset]:m-2',
 
           // Adjust margin/padding specifically for inset, considering sidebar state and side
-          //  mounted && !isMobile && state === 'expanded' && "md:peer-data-[side=left]:peer-data-[variant=inset]:ml-0 md:peer-data-[side=left]:peer-data-[variant=inset]:pl-[calc(var(--sidebar-width)_+_theme(spacing.2))]",
-          //  mounted && !isMobile && state === 'expanded' && "md:peer-data-[side=right]:peer-data-[variant=inset]:mr-0 md:peer-data-[side=right]:peer-data-[variant=inset]:pr-[calc(var(--sidebar-width)_+_theme(spacing.2))]",
+          //  mounted && !isMobile && state === 'expanded' && "md:peer-data-[variant=inset]:peer-data-[side=left]:ml-0 md:peer-data-[variant=inset]:peer-data-[side=left]:pl-[calc(var(--sidebar-width)+(--spacing(2)))]",
+          //  mounted && !isMobile && state === 'expanded' && "md:peer-data-[variant=inset]:peer-data-[side=right]:mr-0 md:peer-data-[variant=inset]:peer-data-[side=right]:pr-[calc(var(--sidebar-width)+(--spacing(2)))]",
 
           // Inset + Collapsed Icon mode padding
-          //  mounted && !isMobile && state === 'collapsed' && "md:peer-data-[side=left]:peer-data-[collapsible=icon]:peer-data-[variant=inset]:ml-0 md:peer-data-[side=left]:peer-data-[collapsible=icon]:peer-data-[variant=inset]:pl-[calc(var(--sidebar-width-icon)_+_theme(spacing.6))]",
-          //  mounted && !isMobile && state === 'collapsed' && "md:peer-data-[side=right]:peer-data-[collapsible=icon]:peer-data-[variant=inset]:mr-0 md:peer-data-[side=right]:peer-data-[collapsible=icon]:peer-data-[variant=inset]:pr-[calc(var(--sidebar-width-icon)_+_theme(spacing.6))]",
+          //  mounted && !isMobile && state === 'collapsed' && "md:peer-data-[variant=inset]:peer-data-[collapsible=icon]:peer-data-[side=left]:ml-0 md:peer-data-[variant=inset]:peer-data-[collapsible=icon]:peer-data-[side=left]:pl-[calc(var(--sidebar-width-icon)+(--spacing(6)))]",
+          //  mounted && !isMobile && state === 'collapsed' && "md:peer-data-[variant=inset]:peer-data-[collapsible=icon]:peer-data-[side=right]:mr-0 md:peer-data-[variant=inset]:peer-data-[collapsible=icon]:peer-data-[side=right]:pr-[calc(var(--sidebar-width-icon)+(--spacing(6)))]",
 
           // Inset + Offcanvas Collapsed mode (should have no extra padding)
           mounted &&
             !isMobile &&
             state === 'collapsed' &&
-            'md:peer-data-[collapsible=offcanvas]:peer-data-[variant=inset]:pl-0 md:peer-data-[collapsible=offcanvas]:peer-data-[variant=inset]:pr-0',
+            'md:peer-data-[variant=inset]:peer-data-[collapsible=offcanvas]:pl-0 md:peer-data-[variant=inset]:peer-data-[collapsible=offcanvas]:pr-0',
 
-          'md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow',
+          'md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow-sm',
 
           className
         )}
@@ -590,7 +590,7 @@ const SidebarGroupLabel = React.forwardRef<
       ref={ref}
       data-sidebar='group-label'
       className={cn(
-        'duration-200 flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-medium text-sidebar-foreground/70 outline-none ring-sidebar-ring transition-[margin,opa] ease-linear focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0',
+        'duration-200 flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-medium text-sidebar-foreground/70 outline-hidden ring-sidebar-ring transition-[margin,opa] ease-linear focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0',
         // Hide label completely in icon mode
         'group-data-[collapsible=icon]:m-0 group-data-[collapsible=icon]:h-0 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:pointer-events-none',
         className
@@ -612,9 +612,9 @@ const SidebarGroupAction = React.forwardRef<
       ref={ref}
       data-sidebar='group-action'
       className={cn(
-        'absolute right-3 top-3.5 flex aspect-square w-5 items-center justify-center rounded-md p-0 text-sidebar-foreground outline-none ring-sidebar-ring transition-transform hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0',
+        'absolute right-3 top-3.5 flex aspect-square w-5 items-center justify-center rounded-md p-0 text-sidebar-foreground outline-hidden ring-sidebar-ring transition-transform hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0',
         // Increases the hit area of the button on mobile.
-        'after:absolute after:-inset-2 after:md:hidden',
+        'after:absolute after:-inset-2 md:after:hidden',
         // Hide action button in icon mode
         'group-data-[collapsible=icon]:hidden',
         className
@@ -667,12 +667,12 @@ SidebarMenuItem.displayName = 'SidebarMenuItem';
 
 const sidebarMenuButtonVariants = cva(
   [
-    'peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none ring-sidebar-ring transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground',
+    'peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-hidden ring-sidebar-ring transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground',
     // Icon mode adjustments
     'group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0',
     // Span and SVG adjustments for icon mode
-    'group-data-[collapsible=icon]:[&>span:last-child]:hidden',
-    'group-data-[collapsible=icon]:[&>svg]:size-5',
+    '[&>span:last-child]:group-data-[collapsible=icon]:hidden',
+    '[&>svg]:group-data-[collapsible=icon]:size-5',
     // Default [&>svg] styling
     '[&>svg]:size-4 [&>svg]:shrink-0',
     // Default span styling
@@ -772,9 +772,9 @@ const SidebarMenuAction = React.forwardRef<
       ref={ref}
       data-sidebar='menu-action'
       className={cn(
-        'absolute right-1 top-1.5 flex aspect-square w-5 items-center justify-center rounded-md p-0 text-sidebar-foreground outline-none ring-sidebar-ring transition-transform hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 peer-hover/menu-button:text-sidebar-accent-foreground [&>svg]:size-4 [&>svg]:shrink-0',
+        'absolute right-1 top-1.5 flex aspect-square w-5 items-center justify-center rounded-md p-0 text-sidebar-foreground outline-hidden ring-sidebar-ring transition-transform hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 peer-hover/menu-button:text-sidebar-accent-foreground [&>svg]:size-4 [&>svg]:shrink-0',
         // Increases the hit area of the button on mobile.
-        'after:absolute after:-inset-2 after:md:hidden',
+        'after:absolute after:-inset-2 md:after:hidden',
         'peer-data-[size=sm]/menu-button:top-1',
         'peer-data-[size=default]/menu-button:top-1.5',
         'peer-data-[size=lg]/menu-button:top-2.5',
@@ -843,7 +843,7 @@ const SidebarMenuSkeleton = React.forwardRef<
         />
       )}
       <Skeleton
-        className='h-4 flex-1 max-w-[--skeleton-width] group-data-[collapsible=icon]:hidden' // Hide text skeleton in icon mode
+        className='h-4 flex-1 max-w-(--skeleton-width) group-data-[collapsible=icon]:hidden' // Hide text skeleton in icon mode
         data-sidebar='menu-skeleton-text'
         style={
           {
@@ -895,7 +895,7 @@ const SidebarMenuSubButton = React.forwardRef<
       data-size={size}
       data-active={isActive}
       className={cn(
-        'flex h-7 min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-md px-2 text-sidebar-foreground outline-none ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 [&>svg]:text-sidebar-accent-foreground',
+        'flex h-7 min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-md px-2 text-sidebar-foreground outline-hidden ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 [&>svg]:text-sidebar-accent-foreground',
         'data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground',
         size === 'sm' && 'text-xs',
         size === 'md' && 'text-sm',
