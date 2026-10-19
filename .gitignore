@@ -46,7 +46,3 @@ next-env.d.ts
 *.idx
 .idx/
 .config/
-
-# genkit state
-.genkit/log/**
-.genkit/trace/**

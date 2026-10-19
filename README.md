@@ -38,8 +38,9 @@ firebase deploy --only firestore:rules,storage
 npm run format:check
 npm run lint
 npm run typecheck
+npm audit --omit=dev
 npm test
 npm run build
 ```
 
-The unit suite covers the state hooks, logging, and error handling. Firebase, Gemini, and browser speech synthesis still require integration testing against configured services.
+The unit suite covers the state hooks, logging, error handling, and AI actions using mocked Gemini responses. Firebase, Gemini, and browser speech synthesis still require integration testing against configured services.

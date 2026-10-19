@@ -211,8 +211,6 @@ export const AiCard = ({ selectedBook, textExtractionState, viewMode }: Props) =
   // Update UI state based on TTS events (handled by callbacks passed to speakText)
   // These are now mostly for logging or specific UI tweaks if needed outside the buttons.
 
-  // --- Genkit Flow Handlers ---
-
   const handleSummarize = async () => {
     if (
       !selectedBook?.textContent ||
@@ -236,11 +234,6 @@ export const AiCard = ({ selectedBook, textExtractionState, viewMode }: Props) =
       });
       return;
     }
-    // Remove check for isAiInitialized/aiInitializationError as ai-instance is not imported here
-    // if (!isAiInitialized || !ai) { // Use Genkit status flags
-    //     toast({ variant: "destructive", title: "AI Service Error", description: aiInitializationError || "AI service is not initialized. Check server logs and API key." });
-    //     return;
-    // }
 
     setSummaryState({ loading: true, data: null, error: null });
     try {
@@ -300,11 +293,6 @@ export const AiCard = ({ selectedBook, textExtractionState, viewMode }: Props) =
       });
       return;
     }
-    // Remove check for isAiInitialized/aiInitializationError
-    // if (!isAiInitialized || !ai) { // Use Genkit status flags
-    //     toast({ variant: "destructive", title: "AI Service Error", description: aiInitializationError || "AI service is not initialized. Check server logs and API key." });
-    //     return;
-    // }
 
     setQuizState({ loading: true, data: null, error: null });
     setUserAnswers({});
