@@ -1,6 +1,6 @@
 import { User } from 'firebase/auth';
 import * as pdfjsLib from 'pdfjs-dist';
-import type { PDFDocumentProxy, TextItem } from 'pdfjs-dist/types/src/display/api';
+import type { TextItem } from 'pdfjs-dist/types/src/display/api';
 import { fixSplitWordsWithWordList } from './fix-words';
 
 let workerSrcIsSet = false;
@@ -53,16 +53,14 @@ export async function convertFileToText(file: File, user: User): Promise<string>
   }
 
   if (file.type !== 'application/pdf') {
-    // TODO: Add support for ePUB if needed
     console.warn('File type not supported for text extraction:', file.type);
-    // Return a placeholder or throw error for non-PDFs for now
     return `File type (${file.type}) not currently supported for text extraction. Only PDF is implemented.`;
   }
 
   console.warn(`[PDF.js] Starting text extraction from PDF: ${file.name}`);
   const arrayBuffer = await file.arrayBuffer();
   let fullText = '';
-  let pdf: PDFDocumentProxy | null = null; // Define pdf variable here
+  let loadingTask: ReturnType<typeof pdfjsLib.getDocument> | undefined;
 
   try {
     // Log the worker source right before loading the document
@@ -70,8 +68,8 @@ export async function convertFileToText(file: File, user: User): Promise<string>
       `[PDF.js] Using workerSrc for getDocument: ${pdfjsLib.GlobalWorkerOptions.workerSrc}`
     );
 
-    const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-    pdf = await loadingTask.promise; // Assign to pdf variable
+    loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+    const pdf = await loadingTask.promise;
     console.warn(`[PDF.js] PDF loaded: ${pdf.numPages} pages`);
 
     for (let i = 1; i <= pdf.numPages; i++) {
@@ -134,16 +132,13 @@ export async function convertFileToText(file: File, user: User): Promise<string>
     // Always throw a new error with the refined message
     throw new Error(`Failed to extract text from PDF "${file.name}". Reason: ${specificMessage}`);
   } finally {
-    // Ensure destroy is called even if errors occurred during page processing
-    if (pdf) {
+    if (loadingTask) {
       try {
-        await pdf.destroy();
-        console.warn('[PDF.js] PDF document destroyed.');
+        await loadingTask.destroy();
+        console.warn('[PDF.js] PDF loading task destroyed.');
       } catch (destroyError) {
         console.error('[PDF.js] Error destroying PDF document:', destroyError);
       }
     }
   }
 }
-
-// Note: ePUB conversion would require a separate library like epub.js and a similar extraction process.

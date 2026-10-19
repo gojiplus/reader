@@ -1,19 +1,17 @@
 {
-  "name": "nextn",
-  "version": "0.2.0",
+  "name": "reader",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=22.12.0"
+    "node": ">=22.22.2"
   },
   "scripts": {
     "dev": "next dev -p 9002",
-    "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
-    "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "lint:fix": "next lint --fix",
+    "lint": "eslint . --max-warnings=0",
+    "lint:fix": "eslint . --fix --max-warnings=0",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
@@ -25,8 +23,8 @@
     "prepare": "husky"
   },
   "dependencies": {
-    "@genkit-ai/googleai": "^1.6.2",
-    "@genkit-ai/next": "^1.6.2",
+    "@daypicker/react": "^10.0.1",
+    "@google/genai": "^2.30.0",
     "@hookform/resolvers": "^4.1.3",
     "@radix-ui/react-accordion": "^1.2.17",
     "@radix-ui/react-alert-dialog": "^1.1.20",
@@ -55,24 +53,21 @@
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
     "firebase": "^11.3.1",
-    "firebase-admin": "^12.4.0",
+    "firebase-admin": "14.5.0",
     "geist": "^1.3.1",
-    "genkit": "^1.6.2",
     "lucide-react": "^0.475.0",
-    "next": "15.5.21",
-    "node-gtts": "^2.0.2",
-    "patch-package": "^8.0.1",
-    "pdfjs-dist": "^6.2.108",
+    "next": "15.5.28",
+    "pdfjs-dist": "^6.4.299",
     "react": "^18.3.1",
-    "react-day-picker": "^8.10.2",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.54.2",
     "recharts": "^2.15.4",
+    "server-only": "^0.0.1",
     "tailwind-merge": "^3.0.2",
     "tailwindcss-animate": "^1.0.7",
     "web-vitals": "^5.1.0",
     "word-list": "4.1.0",
-    "zod": "^3.24.4"
+    "zod": "^3.25.76"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [
@@ -84,7 +79,7 @@
     ]
   },
   "devDependencies": {
-    "@eslint/js": "^9.39.5",
+    "@tailwindcss/postcss": "^4.3.3",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
@@ -95,22 +90,29 @@
     "@typescript-eslint/parser": "^8.47.0",
     "@vitejs/plugin-react": "^5.1.4",
     "@vitest/coverage-v8": "^4.1.10",
-    "copy-webpack-plugin": "^12.0.2",
-    "eslint-config-next": "^16.0.11",
+    "copy-webpack-plugin": "^14.0.0",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "15.5.28",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-jsx-a11y": "^6.10.2",
-    "eslint-plugin-prettier": "^5.5.6",
     "eslint-plugin-react": "^7.37.5",
-    "eslint-plugin-react-hooks": "^7.0.1",
-    "genkit-cli": "^1.6.1",
+    "eslint-plugin-react-hooks": "^5.2.0",
     "happy-dom": "^20.0.11",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
-    "postcss": "^8",
+    "postcss": "8.5.31",
     "prettier": "^3.6.2",
-    "tailwindcss": "^3.4.19",
+    "tailwindcss": "^4.3.3",
     "typescript": "^5",
     "vitest": "^4.1.10"
+  },
+  "packageManager": "npm@12.2.0",
+  "overrides": {
+    "@firebase/firestore": {
+      "@grpc/grpc-js": "^1.14.6"
+    },
+    "uuid": "^11.1.1",
+    "postcss": "$postcss"
   }
 }

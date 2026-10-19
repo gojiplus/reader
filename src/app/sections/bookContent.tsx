@@ -114,7 +114,10 @@ export const BookContent = ({ selectedBook, textExtractionState }: Props) => {
         )}
         {!textExtractionState.loading && !textExtractionState.error && selectedBook.textContent && (
           <div className='relative'>
-            <p ref={textRef} className='text-sm text-foreground whitespace-pre-wrap break-words'>
+            <p
+              ref={textRef}
+              className='text-sm text-foreground whitespace-pre-wrap wrap-break-word'
+            >
               {renderTextWithHighlight(selectedBook.textContent)}
             </p>
             {currentSentenceBoundaries && popoverPosition && (
@@ -142,7 +145,7 @@ export const BookContent = ({ selectedBook, textExtractionState }: Props) => {
           !selectedBook.textContent &&
           selectedBook.contentType === 'application/pdf' && (
             <p className='text-sm text-muted-foreground p-4 text-center'>
-              Click 'Load Text' or enable automatic loading.
+              Click &lsquo;Load Text&rsquo; or enable automatic loading.
             </p>
           )}
       </CardContent>

@@ -14,16 +14,19 @@ interface ExplanationPopoverProps {
 export function ExplanationPopover({ sentence, position }: ExplanationPopoverProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [explanation, setExplanation] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
 
   const getExplanation = useCallback(async () => {
     try {
       pauseSpeech();
       setIsLoading(true);
+      setError(null);
       const explanationInput: ExplainInputSchemaInput = { text: sentence };
       const explanationResult = await generateExplanation(explanationInput);
       setExplanation(explanationResult.explanation);
     } catch (error) {
+      setError('Failed to get an explanation. Please try again.');
       console.error('Error getting explanation:', error);
       toast({
         variant: 'destructive',
@@ -37,10 +40,10 @@ export function ExplanationPopover({ sentence, position }: ExplanationPopoverPro
 
   // Get explanation when popover opens
   useEffect(() => {
-    if (isOpen && !explanation && !isLoading) {
+    if (isOpen && !explanation && !isLoading && !error) {
       getExplanation();
     }
-  }, [isOpen, explanation, isLoading, getExplanation]);
+  }, [isOpen, explanation, isLoading, error, getExplanation]);
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -62,6 +65,11 @@ export function ExplanationPopover({ sentence, position }: ExplanationPopoverPro
         {isLoading ? (
           <div className='flex items-center justify-center p-4'>
             <Loader2 className='h-6 w-6 animate-spin' />
+          </div>
+        ) : error ? (
+          <div className='space-y-2'>
+            <p role='alert'>{error}</p>
+            <Button onClick={getExplanation}>Try again</Button>
           </div>
         ) : explanation ? (
           <div className='space-y-2'>

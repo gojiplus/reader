@@ -8,8 +8,6 @@ import { BookContent } from './bookContent';
 interface Props {
   selectedBook: BookItem;
   textExtractionState: TextExtractionState;
-  setSelectedBook: React.Dispatch<React.SetStateAction<BookItem | null>>;
-  audioPlayerRef: React.Ref<HTMLAudioElement>;
   onBack: () => void;
   viewMode: ViewMode;
   mounted: boolean;
@@ -18,8 +16,6 @@ interface Props {
 export const ReaderView = ({
   selectedBook,
   textExtractionState,
-  setSelectedBook,
-  audioPlayerRef,
   onBack,
   viewMode,
   mounted,
@@ -38,9 +34,7 @@ export const ReaderView = ({
       <BookContent selectedBook={selectedBook} textExtractionState={textExtractionState} />
       <AiCard
         selectedBook={selectedBook}
-        setSelectedBook={setSelectedBook}
         textExtractionState={textExtractionState}
-        audioPlayerRef={audioPlayerRef}
         viewMode={viewMode}
       />
     </div>

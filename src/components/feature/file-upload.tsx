@@ -47,13 +47,12 @@ export function FileUpload({
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Basic validation (allow only PDF for now, ePUB needs storage setup too)
-    const allowedTypes = ['application/pdf']; // Limit to PDF for now
+    const allowedTypes = ['application/pdf'];
     if (!allowedTypes.includes(file.type)) {
       toast({
         variant: 'destructive',
         title: 'Invalid File Type',
-        description: 'Please upload a PDF file.', // Updated message
+        description: 'Please upload a PDF file.',
       });
       if (fileInputRef.current) fileInputRef.current.value = '';
       return;

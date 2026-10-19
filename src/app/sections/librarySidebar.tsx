@@ -44,7 +44,7 @@ export const LibrarySidebar = ({
         <div className='flex items-center gap-2'>
           <AudioLines className='h-6 w-6 text-primary' />
           <h1 className='text-xl font-semibold text-foreground group-data-[collapsible=icon]:hidden'>
-            AudioBook Buddy
+            Reader
           </h1>
         </div>
         {mounted && isMobile && (
@@ -54,7 +54,7 @@ export const LibrarySidebar = ({
         )}
       </SidebarHeader>
       <SidebarContent className='p-0 flex flex-col'>
-        <div className='p-4 flex-grow overflow-hidden'>
+        <div className='p-4 grow overflow-hidden'>
           <p className='mb-2 font-medium text-foreground group-data-[collapsible=icon]:hidden'>
             Your Library
           </p>
@@ -72,7 +72,7 @@ export const LibrarySidebar = ({
         </div>
         <div className='border-t border-sidebar-border p-4 group-data-[collapsible=icon]:p-2'>
           <div className='flex items-center gap-2 group-data-[collapsible=icon]:justify-center'>
-            <div className='flex-grow truncate group-data-[collapsible=icon]:hidden'>
+            <div className='grow truncate group-data-[collapsible=icon]:hidden'>
               <p
                 className='text-sm font-medium text-foreground truncate'
                 title={user?.email || 'User'}
