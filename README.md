@@ -15,10 +15,11 @@ Only text-based PDFs are supported. Reader does not currently extract text from 
 
 ## Development
 
-Reader requires Node.js 22.12 or newer. Copy the environment template and add credentials for a Firebase project with Email/Password Authentication, Firestore, and Storage enabled.
+Reader uses Node.js 22 LTS (22.22.2 or newer) and npm 12.2.0. Copy the environment template and add credentials for a Firebase project with Email/Password Authentication, Firestore, and Storage enabled.
 
 ```bash
 cp .env.example .env.local
+npm install --global npm@12.2.0
 npm ci
 npm run dev
 ```

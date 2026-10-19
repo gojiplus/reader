@@ -110,5 +110,6 @@
     "tsx": "4.20.6",
     "typescript": "^5",
     "vitest": "^4.1.10"
-  }
+  },
+  "packageManager": "npm@12.2.0"
 }
