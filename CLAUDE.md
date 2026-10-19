@@ -20,7 +20,7 @@ The development server runs on port 9002. `npm run genkit:dev` and `npm run genk
 
 Copy `.env.example` to `.env.local`. Firebase browser settings use `NEXT_PUBLIC_FIREBASE_*`. Gemini uses the server-only `GEMINI_API_KEY`. Local authenticated server routes use Application Default Credentials through `GOOGLE_APPLICATION_CREDENTIALS`; Google hosting supplies credentials automatically.
 
-Use Node.js 22.12 or newer; `.nvmrc` selects Node.js 22.
+Use Node.js 22.22.2 or newer; `.nvmrc` selects Node.js 22.
 
 ## Architecture
 
