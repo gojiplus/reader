@@ -1,6 +1,6 @@
 # Reader development guide
 
-Reader is a Next.js 15 App Router application for reading text-based PDFs. Firebase provides email/password authentication, per-user file storage, and Firestore metadata. PDF.js extracts text in the browser, the Web Speech API reads it aloud, and server-side Genkit actions provide summaries, quizzes, and sentence explanations.
+Reader is a Next.js 15 App Router application for reading text-based PDFs. Firebase provides email/password authentication, per-user file storage, and Firestore metadata. PDF.js extracts text in the browser, the Web Speech API reads it aloud, and server-side Gemini actions provide summaries, quizzes, and sentence explanations.
 
 ## Commands
 
@@ -10,11 +10,12 @@ npm run dev
 npm run format:check
 npm run lint
 npm run typecheck
+npm audit --omit=dev
 npm test
 npm run build
 ```
 
-The development server runs on port 9002. `npm run genkit:dev` and `npm run genkit:watch` open the optional Genkit development UI; the Next.js application invokes the server actions directly.
+The development server runs on port 9002. The Next.js server actions invoke the official Google GenAI SDK directly.
 
 ## Configuration
 
@@ -29,7 +30,7 @@ Use Node.js 22.22.2 or newer; `.nvmrc` selects Node.js 22.
 - `src/services/file-conversion.ts` extracts text from PDFs with PDF.js. EPUB and image-only PDF extraction are not implemented.
 - `src/services/tts.ts` provides browser speech synthesis. Reader does not generate or persist audio files.
 - `src/app/api/analyze-text/route.ts` verifies Firebase ID tokens before repairing split PDF words.
-- `src/ai/ai-instance.ts` configures the current Google GenAI plugin and `gemini-flash-latest`.
+- `src/ai/gemini.ts` calls `gemini-flash-latest` with JSON schemas derived from Zod and validates the response.
 - `src/ai/flows/` contains server actions for summaries, quizzes, and sentence explanations.
 - `firestore.rules` and `storage.rules` restrict records and files to their authenticated owner.
 

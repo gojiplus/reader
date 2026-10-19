@@ -25,21 +25,17 @@ vi.mock('@/lib/firebase/clientApp', () => ({
 }));
 
 // Mock environment variables
-Object.defineProperty(global, 'process', {
-  value: {
-    ...process,
-    env: {
-      ...process.env,
-      NODE_ENV: 'test',
-      NEXT_PUBLIC_FIREBASE_API_KEY: 'test-api-key',
-      NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: 'test.firebaseapp.com',
-      NEXT_PUBLIC_FIREBASE_PROJECT_ID: 'test-project',
-      NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: 'test.appspot.com',
-      NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: '123456789',
-      NEXT_PUBLIC_FIREBASE_APP_ID: 'test-app-id',
-    },
-  },
-});
+for (const [name, value] of Object.entries({
+  NODE_ENV: 'test',
+  NEXT_PUBLIC_FIREBASE_API_KEY: 'test-api-key',
+  NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: 'test.firebaseapp.com',
+  NEXT_PUBLIC_FIREBASE_PROJECT_ID: 'test-project',
+  NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: 'test.appspot.com',
+  NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: '123456789',
+  NEXT_PUBLIC_FIREBASE_APP_ID: 'test-app-id',
+})) {
+  vi.stubEnv(name, value);
+}
 
 // Mock window object for client-side tests
 Object.defineProperty(window, 'matchMedia', {
@@ -57,15 +53,11 @@ Object.defineProperty(window, 'matchMedia', {
 });
 
 // Mock IntersectionObserver
-global.IntersectionObserver = vi.fn().mockImplementation(() => ({
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-  disconnect: vi.fn(),
-}));
+global.IntersectionObserver = vi.fn().mockImplementation(function () {
+  return { observe: vi.fn(), unobserve: vi.fn(), disconnect: vi.fn() };
+});
 
 // Mock ResizeObserver
-global.ResizeObserver = vi.fn().mockImplementation(() => ({
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-  disconnect: vi.fn(),
-}));
+global.ResizeObserver = vi.fn().mockImplementation(function () {
+  return { observe: vi.fn(), unobserve: vi.fn(), disconnect: vi.fn() };
+});
