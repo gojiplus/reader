@@ -7,6 +7,11 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 5
+    ignore:
+      # Keep types on the Node major declared in .nvmrc.
+      - dependency-name: '@types/node'
+        update-types:
+          - version-update:semver-major
     groups:
       radix-ui:
         patterns:
@@ -17,8 +22,15 @@ updates:
           - react-dom
           - '@types/react'
           - '@types/react-dom'
+      nextjs:
+        patterns:
+          - next
+          - eslint-config-next
+          - eslint-plugin-react-hooks
       dev-dependencies:
         dependency-type: development
+        exclude-patterns:
+          - eslint
       production-minor-patch:
         dependency-type: production
         update-types:
