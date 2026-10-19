@@ -114,7 +114,10 @@ export const BookContent = ({ selectedBook, textExtractionState }: Props) => {
         )}
         {!textExtractionState.loading && !textExtractionState.error && selectedBook.textContent && (
           <div className='relative'>
-            <p ref={textRef} className='text-sm text-foreground whitespace-pre-wrap break-words'>
+            <p
+              ref={textRef}
+              className='text-sm text-foreground whitespace-pre-wrap wrap-break-word'
+            >
               {renderTextWithHighlight(selectedBook.textContent)}
             </p>
             {currentSentenceBoundaries && popoverPosition && (

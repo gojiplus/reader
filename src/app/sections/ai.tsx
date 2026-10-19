@@ -388,8 +388,8 @@ export const AiCard = ({ selectedBook, textExtractionState, viewMode }: Props) =
           <AccordionItem value='audio'>
             <AccordionTrigger>
               <div className='flex items-center gap-2 w-full'>
-                <Headphones className='h-5 w-5 flex-shrink-0' />
-                <span className='flex-grow text-left'>Listen (Browser TTS)</span>
+                <Headphones className='h-5 w-5 shrink-0' />
+                <span className='grow text-left'>Listen (Browser TTS)</span>
               </div>
             </AccordionTrigger>
             <AccordionContent>
@@ -441,8 +441,8 @@ export const AiCard = ({ selectedBook, textExtractionState, viewMode }: Props) =
           <AccordionItem value='summary'>
             <AccordionTrigger>
               <div className='flex items-center gap-2 w-full'>
-                <Lightbulb className='h-5 w-5 flex-shrink-0' />
-                <span className='flex-grow text-left'>Chapter Summary</span>
+                <Lightbulb className='h-5 w-5 shrink-0' />
+                <span className='grow text-left'>Chapter Summary</span>
                 {summaryState.loading && (
                   <Loader2 className='h-4 w-4 animate-spin text-muted-foreground ml-auto' />
                 )}
@@ -481,8 +481,8 @@ export const AiCard = ({ selectedBook, textExtractionState, viewMode }: Props) =
           <AccordionItem value='quiz'>
             <AccordionTrigger>
               <div className='flex items-center gap-2 w-full'>
-                <HelpCircle className='h-5 w-5 flex-shrink-0' />
-                <span className='flex-grow text-left'>Quick Quiz</span>
+                <HelpCircle className='h-5 w-5 shrink-0' />
+                <span className='grow text-left'>Quick Quiz</span>
                 {quizState.loading && (
                   <Loader2 className='h-4 w-4 animate-spin text-muted-foreground ml-auto' />
                 )}
@@ -490,7 +490,7 @@ export const AiCard = ({ selectedBook, textExtractionState, viewMode }: Props) =
             </AccordionTrigger>
             <AccordionContent>
               {quizState.error && (
-                <p className='text-sm text-destructive break-words'>{quizState.error}</p>
+                <p className='text-sm text-destructive wrap-break-word'>{quizState.error}</p>
               )}
               {quizState.data && quizState.data.questions.length > 0 && (
                 <div className='space-y-6'>

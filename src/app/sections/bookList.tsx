@@ -72,8 +72,8 @@ export const BookList = ({
               onClick={() => onSelectBook(book)}
               title={book.name}
             >
-              <Book className='h-4 w-4 mr-2 flex-shrink-0 group-data-[collapsible=icon]:mr-0' />
-              <span className='flex-grow ml-1 group-data-[collapsible=icon]'>{book.name}</span>
+              <Book className='h-4 w-4 mr-2 shrink-0 group-data-[collapsible=icon]:mr-0' />
+              <span className='grow ml-1 group-data-[collapsible=icon]'>{book.name}</span>
             </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
