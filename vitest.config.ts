@@ -19,10 +19,6 @@ export default defineConfig({
       'coverage/**',
       '**/*.d.ts',
     ],
-    // Optimize memory usage - one worker at a time. vitest 4 removed
-    // poolOptions/Tinypool; singleThread/maxThreads collapse into maxWorkers.
-    // Threads (not the new 'forks' default) so the --max-old-space-size in the
-    // test script governs one shared heap.
     pool: 'threads',
     maxWorkers: 1,
     // Increase timeout and reduce memory pressure
@@ -55,7 +51,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      '@': path.resolve(import.meta.dirname, './src'),
     },
     conditions: ['browser'],
   },

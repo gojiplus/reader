@@ -1,11 +1,7 @@
-// 3rd party modules
 import { useRef, useEffect } from 'react';
 
-// HDx modules
-// - N/A
-
 const usePreviousValue = <T>(value: T): T | undefined => {
-  const ref = useRef<T>();
+  const ref = useRef<T | undefined>(undefined);
   useEffect(() => {
     ref.current = value;
   });
