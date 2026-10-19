@@ -7,12 +7,16 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 5
-    # Grouped so a week of bumps is one or two PRs to review, not fifteen.
-    # Major production bumps stay ungrouped and get their own PR.
     groups:
       radix-ui:
         patterns:
           - '@radix-ui/*'
+      react:
+        patterns:
+          - react
+          - react-dom
+          - '@types/react'
+          - '@types/react-dom'
       dev-dependencies:
         dependency-type: development
       production-minor-patch:
