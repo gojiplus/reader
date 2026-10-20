@@ -28,8 +28,12 @@ export const useBookManager = () => {
   const { toast } = useToast();
   const { handleError } = useErrorHandler('useBookManager');
 
-  const [books, setBooks] = useState<BookItem[]>([]);
-  const [booksLoading, setBooksLoading] = useState(true);
+  const userId = user?.uid;
+  const [bookSnapshot, setBookSnapshot] = useState<{ userId: string; books: BookItem[] } | null>(
+    null
+  );
+  const books = userId && bookSnapshot?.userId === userId ? bookSnapshot.books : [];
+  const booksLoading = authLoading || Boolean(userId && db && bookSnapshot?.userId !== userId);
   const [selectedBook, setSelectedBook] = useState<BookItem | null>(null);
   const [textExtractionState, setTextExtractionState] = useState<TextExtractionState>({
     loading: false,
@@ -39,17 +43,13 @@ export const useBookManager = () => {
   // Fetch books from Firestore for the logged-in user
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;
+    let active = true;
 
-    if (user && db) {
-      setBooksLoading(true);
-      logger.info(`Setting up listener for books with userId: ${user.uid}`);
+    if (userId && db) {
+      logger.info(`Setting up listener for books with userId: ${userId}`);
 
       const booksCollection = collection(db, 'books');
-      const q = query(
-        booksCollection,
-        where('userId', '==', user.uid),
-        orderBy('createdAt', 'desc')
-      );
+      const q = query(booksCollection, where('userId', '==', userId), orderBy('createdAt', 'desc'));
 
       unsubscribe = onSnapshot(
         q,
@@ -63,10 +63,10 @@ export const useBookManager = () => {
           })) as BookItem[];
 
           logger.info(`Snapshot received. ${querySnapshot.docs.length} books found.`);
-          setBooks(userBooks);
-          setBooksLoading(false);
+          if (active) setBookSnapshot({ userId, books: userBooks });
         },
         error => {
+          if (!active) return;
           const errorInfo = handleError(error, {
             category: ErrorCategory.FIREBASE,
             action: 'fetch_books',
@@ -77,10 +77,13 @@ export const useBookManager = () => {
             title: errorInfo.title,
             description: errorInfo.message,
           });
-          setBooksLoading(false);
+          setBookSnapshot(previous => ({
+            userId,
+            books: previous?.userId === userId ? previous.books : [],
+          }));
         }
       );
-    } else if (!db && user) {
+    } else if (!db && userId) {
       const errorInfo = handleError(new Error('Firestore instance not available'), {
         category: ErrorCategory.FIREBASE,
         action: 'database_connection',
@@ -91,24 +94,17 @@ export const useBookManager = () => {
         title: errorInfo.title,
         description: errorInfo.message,
       });
-      setBooksLoading(false);
-    } else {
-      // No user or db, clear books and stop loading
-      setBooks([]);
-      setBooksLoading(false);
-      if (!user && !authLoading) {
-        logger.info('No user logged in, clearing books.');
-      }
     }
 
     // Cleanup function
     return () => {
+      active = false;
       if (unsubscribe) {
         unsubscribe();
         logger.debug('Unsubscribed from book updates.');
       }
     };
-  }, [user, authLoading, toast, handleError]);
+  }, [userId, toast, handleError]);
 
   const handleBookUpload = useCallback(
     async (fileMetadata: FileUploadMetadata) => {

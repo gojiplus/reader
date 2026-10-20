@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 /**
  * Centralized error handling utilities for the audiobook reader application
  * Provides consistent error handling patterns and user-friendly error messages
@@ -277,7 +278,11 @@ export const handleComponentError = (
 /**
  * Hook for React components to get standardized error handling
  */
-export const useErrorHandler = (componentName: string) => ({
-  handleError: (error: Error | unknown, context: Partial<ErrorContext> = {}) =>
-    handleComponentError(error, componentName, context),
-});
+export const useErrorHandler = (componentName: string) => {
+  const handleError = useCallback(
+    (error: Error | unknown, context: Partial<ErrorContext> = {}) =>
+      handleComponentError(error, componentName, context),
+    [componentName]
+  );
+  return { handleError };
+};

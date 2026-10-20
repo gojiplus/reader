@@ -27,7 +27,6 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import usePreviousValue from '@/hooks/usePreviousValue';
 import {
   BookItem,
   QuizState,
@@ -61,9 +60,12 @@ function hasDigest(error: unknown): error is { digest: string } {
   );
 }
 
-export const AiCard = ({ selectedBook, textExtractionState, viewMode }: Props) => {
+export const AiCard = (props: Props) => (
+  <AiCardContent key={`${props.selectedBook?.id ?? 'none'}:${props.viewMode}`} {...props} />
+);
+
+const AiCardContent = ({ selectedBook, textExtractionState }: Props) => {
   const { user } = useAuth();
-  const previousBook = usePreviousValue<BookItem | null>(selectedBook);
 
   const { toast } = useToast();
   const [userAnswers, setUserAnswers] = useState<UserAnswers>({});
@@ -85,18 +87,7 @@ export const AiCard = ({ selectedBook, textExtractionState, viewMode }: Props) =
     error: null,
   });
 
-  useEffect(() => {
-    if (previousBook?.id !== selectedBook?.id || selectedBook == null || viewMode !== 'reader') {
-      setIsSpeakingState(false); // Reset these immediately
-      setIsPausedState(false);
-      _setCurrentSpeakingText(null);
-      setSummaryState({ loading: false, data: null, error: null });
-      setQuizState({ loading: false, data: null, error: null });
-      setUserAnswers({});
-      setQuizSubmitted(false);
-      setQuizScore(null);
-    }
-  }, [previousBook, selectedBook, viewMode]);
+  useEffect(() => () => stopSpeech(), []);
 
   // --- TTS Controls ---
   const handlePlayPause = () => {

@@ -1,13 +1,10 @@
-import { FlatCompat } from '@eslint/eslintrc';
+import nextVitals from 'eslint-config-next/core-web-vitals';
+import nextTypescript from 'eslint-config-next/typescript';
 import prettierConfig from 'eslint-config-prettier/flat';
-import { dirname } from 'path';
-import { fileURLToPath } from 'url';
-
-const currentDirectory = dirname(fileURLToPath(import.meta.url));
-const compat = new FlatCompat({ baseDirectory: currentDirectory });
 
 const eslintConfig = [
-  ...compat.extends('next/core-web-vitals', 'next/typescript'),
+  ...nextVitals,
+  ...nextTypescript,
   prettierConfig,
   {
     rules: {

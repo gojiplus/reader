@@ -1,54 +1,70 @@
-import { renderHook } from '@testing-library/react';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { act, renderHook } from '@testing-library/react';
+import { beforeEach, expect, it, vi } from 'vitest';
 import { useBookManager } from '../useBookManager';
 
-// Mock all dependencies statically to avoid memory leaks
+const mocks = vi.hoisted(() => ({
+  user: null as { uid: string } | null,
+  loading: false,
+  toast: vi.fn(),
+  onSnapshot: vi.fn(),
+  unsubscribe: vi.fn(),
+}));
 vi.mock('@/contexts/AuthContext', () => ({
-  useAuth: () => ({ user: null, loading: false }),
+  useAuth: () => ({ user: mocks.user, loading: mocks.loading }),
 }));
-
-vi.mock('@/hooks/use-toast', () => ({
-  useToast: () => ({ toast: vi.fn() }),
+vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: mocks.toast }) }));
+vi.mock('@/lib/firebase/clientApp', () => ({ db: {}, storage: {} }));
+vi.mock('firebase/firestore', () => ({
+  collection: vi.fn(),
+  query: vi.fn(),
+  where: vi.fn(),
+  orderBy: vi.fn(),
+  onSnapshot: mocks.onSnapshot,
+  serverTimestamp: vi.fn(),
 }));
-
-vi.mock('@/lib/firebase/clientApp', () => ({
-  db: null,
-  storage: null,
-}));
-
-vi.mock('firebase/firestore', () => ({}));
 vi.mock('firebase/storage', () => ({}));
 
-describe.skip('useBookManager', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
+beforeEach(() => {
+  vi.clearAllMocks();
+  mocks.user = null;
+  mocks.loading = false;
+  mocks.onSnapshot.mockReturnValue(mocks.unsubscribe);
+});
 
-  it('should be importable and callable', () => {
-    expect(() => {
-      renderHook(() => useBookManager());
-    }).not.toThrow();
-  });
+it('finishes loading an empty library when signed out', () => {
+  const { result } = renderHook(useBookManager);
+  expect(result.current.books).toEqual([]);
+  expect(result.current.booksLoading).toBe(false);
+  expect(mocks.onSnapshot).not.toHaveBeenCalled();
+});
 
-  it.skip('should provide expected interface', () => {
-    const { result } = renderHook(() => useBookManager());
+it('keeps one subscription and discards the previous user’s library on account changes', () => {
+  mocks.user = { uid: 'first' };
+  const { result, rerender, unmount } = renderHook(useBookManager);
+  expect(result.current.booksLoading).toBe(true);
+  const receiveFirst = mocks.onSnapshot.mock.calls[0][1];
+  act(() => receiveFirst({ docs: [{ id: 'book', data: () => ({ title: 'A book' }) }] }));
+  expect(result.current.books[0].title).toBe('A book');
+  expect(result.current.booksLoading).toBe(false);
+  rerender();
+  expect(mocks.onSnapshot).toHaveBeenCalledTimes(1);
+  mocks.user = { uid: 'second' };
+  rerender();
+  expect(mocks.unsubscribe).toHaveBeenCalledTimes(1);
+  expect(result.current.books).toEqual([]);
+  expect(result.current.booksLoading).toBe(true);
+  act(() => receiveFirst({ docs: [{ id: 'stale', data: () => ({ title: 'Stale book' }) }] }));
+  expect(result.current.books).toEqual([]);
+  act(() => mocks.onSnapshot.mock.calls[1][1]({ docs: [] }));
+  expect(result.current.booksLoading).toBe(false);
+  unmount();
+  expect(mocks.unsubscribe).toHaveBeenCalledTimes(2);
+});
 
-    // Check that the hook returns expected properties
-    expect(result.current).toHaveProperty('books');
-    expect(result.current).toHaveProperty('booksLoading');
-    expect(result.current).toHaveProperty('selectedBook');
-    expect(result.current).toHaveProperty('setSelectedBook');
-    expect(result.current).toHaveProperty('textExtractionState');
-    expect(result.current).toHaveProperty('setTextExtractionState');
-    expect(result.current).toHaveProperty('handleBookUpload');
-    expect(result.current).toHaveProperty('handleDeleteBook');
-
-    // Check initial values
-    expect(Array.isArray(result.current.books)).toBe(true);
-    expect(typeof result.current.booksLoading).toBe('boolean');
-    expect(result.current.selectedBook).toBe(null);
-    expect(typeof result.current.textExtractionState).toBe('object');
-    expect(typeof result.current.handleBookUpload).toBe('function');
-    expect(typeof result.current.handleDeleteBook).toBe('function');
-  });
+it('stops loading and reports a subscription error', () => {
+  mocks.user = { uid: 'first' };
+  const { result } = renderHook(useBookManager);
+  act(() => mocks.onSnapshot.mock.calls[0][2](new Error('permission denied')));
+  expect(result.current.booksLoading).toBe(false);
+  expect(mocks.toast).toHaveBeenCalledOnce();
 });
