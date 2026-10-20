@@ -47,12 +47,11 @@
     "@radix-ui/react-toast": "^1.2.20",
     "@radix-ui/react-tooltip": "^1.1.8",
     "@radix-ui/react-visually-hidden": "^1.1.3",
-    "@tanstack-query-firebase/react": "^1.0.7",
     "@tanstack/react-query": "^5.66.11",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
-    "firebase": "^11.3.1",
+    "firebase": "^13.0.0",
     "firebase-admin": "14.5.0",
     "geist": "^1.3.1",
     "lucide-react": "^1.58.0",
@@ -113,6 +112,7 @@
       "@grpc/grpc-js": "^1.14.6"
     },
     "uuid": "^11.1.1",
-    "postcss": "$postcss"
+    "postcss": "$postcss",
+    "@firebase/app": "0.16.3"
   }
 }
