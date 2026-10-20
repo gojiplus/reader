@@ -1,32 +1,14 @@
-import * as React from 'react';
+import { useSyncExternalStore } from 'react';
 
 const MOBILE_BREAKPOINT = 768;
+const getSnapshot = () => window.innerWidth < MOBILE_BREAKPOINT;
+const getServerSnapshot = () => undefined;
 
-/**
- * Custom hook to determine if the current viewport width is considered mobile.
- * Returns `undefined` during server-side rendering and initial client hydration,
- * then `true` or `false` after mounting.
- */
+function subscribe(onChange: () => void) {
+  window.addEventListener('resize', onChange);
+  return () => window.removeEventListener('resize', onChange);
+}
+
 export function useIsMobile() {
-  const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined);
-
-  React.useEffect(() => {
-    // This effect runs only on the client after hydration
-    const checkDevice = () => {
-      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
-    };
-
-    // Initial check
-    checkDevice();
-
-    // Listener for window resize
-    window.addEventListener('resize', checkDevice);
-
-    // Cleanup listener on component unmount
-    return () => {
-      window.removeEventListener('resize', checkDevice);
-    };
-  }, []); // Empty dependency array ensures this runs once on mount
-
-  return isMobile;
+  return useSyncExternalStore<boolean | undefined>(subscribe, getSnapshot, getServerSnapshot);
 }

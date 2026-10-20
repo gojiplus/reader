@@ -7,8 +7,8 @@
     "node": ">=22.22.2"
   },
   "scripts": {
-    "dev": "next dev -p 9002",
-    "build": "next build",
+    "dev": "next dev --webpack -p 9002",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint . --max-warnings=0",
     "lint:fix": "eslint . --fix --max-warnings=0",

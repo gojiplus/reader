@@ -3,7 +3,7 @@
 import { signOut } from 'firebase/auth';
 import { Loader2, ArrowLeft, LogIn, AudioLines } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import LibrarySidebar from '@/app/sections/librarySidebar';
 import ReaderView from '@/app/sections/readerView';
 import { PerformanceDebugger } from '@/components/PerformanceDebugger';
@@ -12,6 +12,7 @@ import { SidebarProvider, SidebarTrigger, SidebarInset, useSidebar } from '@/com
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useBookManager } from '@/hooks/useBookManager';
+import { useHydrated } from '@/hooks/useHydrated';
 import { useViewMode } from '@/hooks/useViewMode';
 import { useErrorHandler, ErrorCategory } from '@/lib/error-handler';
 import { auth } from '@/lib/firebase/clientApp';
@@ -28,7 +29,7 @@ function AppContent() {
   const { toast } = useToast();
   const { handleError } = useErrorHandler('AudiobookApp');
 
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   // Custom hooks for state management
   const {
     books,
@@ -41,11 +42,6 @@ function AppContent() {
   } = useBookManager();
 
   const { viewMode, goToLibrary, goToReader, isLibraryView, isReaderView } = useViewMode();
-
-  // Handle mounting to prevent hydration issues
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   // Redirect to auth if not authenticated
   useEffect(() => {

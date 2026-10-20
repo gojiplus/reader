@@ -11,6 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'; // Import SheetTitle
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useHydrated } from '@/hooks/useHydrated';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 
@@ -20,6 +21,15 @@ const SIDEBAR_WIDTH = '16rem';
 const SIDEBAR_WIDTH_MOBILE = '18rem';
 const SIDEBAR_WIDTH_ICON = '3rem';
 const SIDEBAR_KEYBOARD_SHORTCUT = 'b';
+
+const subscribeToCookie = () => () => {};
+const getCookieOpen = () => {
+  const value = document.cookie
+    .split('; ')
+    .find(row => row.startsWith(`${SIDEBAR_COOKIE_NAME}=`))
+    ?.split('=')[1];
+  return value === undefined ? undefined : value === 'true';
+};
 
 type SidebarContextType = {
   state: 'expanded' | 'collapsed';
@@ -65,34 +75,13 @@ const SidebarProvider = React.forwardRef<
     const isMobile = useIsMobile(); // isMobile can be undefined initially
     const [openMobile, setOpenMobile] = React.useState(false);
 
-    // Initialize state based on props or default, avoid cookie read here
-    const [_open, _setOpen] = React.useState(openProp ?? defaultOpen);
-
-    // Effect to sync controlled prop changes
-    React.useEffect(() => {
-      if (openProp !== undefined) {
-        _setOpen(openProp);
-      }
-    }, [openProp]);
-
-    // Effect to read cookie and set initial state only on client mount for uncontrolled component
-    React.useEffect(() => {
-      // Only run on client after mount, and only if uncontrolled
-      if (openProp === undefined && typeof window !== 'undefined') {
-        const cookieValue = document.cookie
-          .split('; ')
-          .find(row => row.startsWith(`${SIDEBAR_COOKIE_NAME}=`))
-          ?.split('=')[1];
-
-        // Set state based on cookie if found, otherwise respect defaultOpen (already set initially)
-        if (cookieValue !== undefined) {
-          _setOpen(cookieValue === 'true');
-        }
-      }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []); // Run only once on mount
-
-    const open = openProp ?? _open;
+    const [_open, _setOpen] = React.useState<boolean>();
+    const cookieOpen = React.useSyncExternalStore(
+      subscribeToCookie,
+      getCookieOpen,
+      () => undefined
+    );
+    const open = openProp ?? _open ?? cookieOpen ?? defaultOpen;
 
     const setOpen = React.useCallback(
       (value: boolean | ((value: boolean) => boolean)) => {
@@ -209,11 +198,7 @@ const Sidebar = React.forwardRef<
     ref
   ) => {
     const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
-    const [mounted, setMounted] = React.useState(false);
-
-    React.useEffect(() => {
-      setMounted(true);
-    }, []);
+    const mounted = useHydrated();
 
     // Render skeleton or null on the server and during initial client hydration
     if (!mounted) {
@@ -348,11 +333,7 @@ const SidebarTrigger = React.forwardRef<
   React.ComponentProps<typeof Button>
 >(({ className, onClick, ...props }, ref) => {
   const { toggleSidebar, isMobile } = useSidebar();
-  const [mounted, setMounted] = React.useState(false);
-
-  React.useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useHydrated();
 
   // Only render the trigger on the client, and only for mobile view
   if (!mounted || !isMobile) {
@@ -382,11 +363,7 @@ SidebarTrigger.displayName = 'SidebarTrigger';
 const SidebarRail = React.forwardRef<HTMLButtonElement, React.ComponentProps<'button'>>(
   ({ className, ...props }, ref) => {
     const { toggleSidebar, isMobile } = useSidebar();
-    const [mounted, setMounted] = React.useState(false);
-
-    React.useEffect(() => {
-      setMounted(true);
-    }, []);
+    const mounted = useHydrated();
 
     // Do not render the rail on mobile or during SSR/hydration
     if (!mounted || isMobile) {
@@ -420,11 +397,7 @@ SidebarRail.displayName = 'SidebarRail';
 const SidebarInset = React.forwardRef<HTMLDivElement, React.ComponentProps<'main'>>(
   ({ className, ...props }, ref) => {
     const { isMobile, state } = useSidebar(); // Use sidebar state
-    const [mounted, setMounted] = React.useState(false);
-
-    React.useEffect(() => {
-      setMounted(true);
-    }, []);
+    const mounted = useHydrated();
 
     return (
       <main
@@ -818,10 +791,7 @@ const SidebarMenuSkeleton = React.forwardRef<
   }
 >(({ className, showIcon = false, ...props }, ref) => {
   const { isMobile, state } = useSidebar(); // Get sidebar state
-  // Random width between 50 to 90%.
-  const width = React.useMemo(() => {
-    return `${Math.floor(Math.random() * 40) + 50}%`;
-  }, []);
+  const width = '70%';
 
   return (
     <div

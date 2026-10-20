@@ -1,5 +1,5 @@
 import { Loader2 } from 'lucide-react';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { ExplainInputSchemaInput, generateExplanation } from '@/ai/flows/explain-sentence';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -38,15 +38,13 @@ export function ExplanationPopover({ sentence, position }: ExplanationPopoverPro
     }
   }, [sentence]);
 
-  // Get explanation when popover opens
-  useEffect(() => {
-    if (isOpen && !explanation && !isLoading && !error) {
-      getExplanation();
-    }
-  }, [isOpen, explanation, isLoading, error, getExplanation]);
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open);
+    if (open && !explanation && !isLoading && !error) void getExplanation();
+  };
 
   return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
+    <Popover open={isOpen} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <Button
           variant='outline'
