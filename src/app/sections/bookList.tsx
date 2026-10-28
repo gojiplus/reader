@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { BookItem, ViewMode } from '@/lib/interfaces';
+import type { BookItem, ViewMode } from '@/lib/interfaces';
 import { cn } from '@/lib/utils';
 
 interface Props {

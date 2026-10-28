@@ -1,4 +1,4 @@
-import { User } from 'firebase/auth';
+import type { User } from 'firebase/auth';
 
 /**
  * Fix split words in text by merging adjacent tokens if their concatenation is a valid word.

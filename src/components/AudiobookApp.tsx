@@ -3,7 +3,7 @@
 import { signOut } from 'firebase/auth';
 import { Loader2, ArrowLeft, LogIn, AudioLines } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import LibrarySidebar from '@/app/sections/librarySidebar';
 import ReaderView from '@/app/sections/readerView';
 import { PerformanceDebugger } from '@/components/PerformanceDebugger';
@@ -16,7 +16,7 @@ import { useHydrated } from '@/hooks/useHydrated';
 import { useViewMode } from '@/hooks/useViewMode';
 import { useErrorHandler, ErrorCategory } from '@/lib/error-handler';
 import { auth } from '@/lib/firebase/clientApp';
-import { BookItem } from '@/lib/interfaces';
+import type { BookItem } from '@/lib/interfaces';
 import { createComponentLogger } from '@/lib/logger';
 import { stopSpeech } from '@/services/tts';
 

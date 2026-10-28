@@ -3,7 +3,7 @@
  * Tracks Core Web Vitals and custom performance metrics
  */
 
-import { onCLS, onINP, onFCP, onLCP, onTTFB, Metric } from 'web-vitals';
+import { onCLS, onINP, onFCP, onLCP, onTTFB, type Metric } from 'web-vitals';
 import { logger } from './logger';
 
 // Google Analytics interface

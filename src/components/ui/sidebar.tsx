@@ -2,7 +2,7 @@
 
 import { Slot } from '@radix-ui/react-slot';
 import * as VisuallyHidden from '@radix-ui/react-visually-hidden'; // Already imported for SheetContent title
-import { VariantProps, cva } from 'class-variance-authority';
+import { type VariantProps, cva } from 'class-variance-authority';
 import { PanelLeft } from 'lucide-react';
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
@@ -94,6 +94,7 @@ const SidebarProvider = React.forwardRef<
 
         // This sets the cookie to keep the sidebar state.
         if (typeof window !== 'undefined') {
+          // biome-ignore lint/suspicious/noDocumentCookie: The preference is read synchronously during initial rendering.
           document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}; SameSite=Lax`;
         }
       },
@@ -108,7 +109,7 @@ const SidebarProvider = React.forwardRef<
       } else if (isMobile === false) {
         setOpen(currentOpen => !currentOpen);
       }
-    }, [isMobile, setOpen, setOpenMobile]);
+    }, [isMobile, setOpen]);
 
     // Adds a keyboard shortcut to toggle the sidebar.
     React.useEffect(() => {
@@ -148,7 +149,7 @@ const SidebarProvider = React.forwardRef<
         setOpenMobile,
         toggleSidebar,
       }),
-      [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar]
+      [state, open, setOpen, isMobile, openMobile, toggleSidebar]
     );
 
     return (

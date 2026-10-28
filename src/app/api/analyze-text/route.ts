@@ -1,6 +1,6 @@
 import { applicationDefault, getApps, initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
-import { NextRequest, NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 import z from 'zod';
 import { fixWordsWithIterations } from '@/lib/word-processing';
 

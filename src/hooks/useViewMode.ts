@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { ViewMode, BookItem } from '@/lib/interfaces';
+import type { ViewMode, BookItem } from '@/lib/interfaces';
 import { createComponentLogger } from '@/lib/logger';
 
 const logger = createComponentLogger('useViewMode');

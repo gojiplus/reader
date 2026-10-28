@@ -1,7 +1,7 @@
 'use client';
 
 import { Upload, Loader2 } from 'lucide-react'; // Added Loader2
-import React, { useRef, useState, type ChangeEvent } from 'react';
+import { useRef, useState, type ChangeEvent } from 'react';
 import { Button, type ButtonProps } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress'; // Import Progress component

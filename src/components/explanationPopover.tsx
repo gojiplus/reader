@@ -1,6 +1,6 @@
 import { Loader2 } from 'lucide-react';
 import { useState, useCallback } from 'react';
-import { ExplainInputSchemaInput, generateExplanation } from '@/ai/flows/explain-sentence';
+import { type ExplainInputSchemaInput, generateExplanation } from '@/ai/flows/explain-sentence';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { toast } from '@/hooks/use-toast';

@@ -1,39 +1,7 @@
-echo "🔍 Running pre-commit checks..."
+set -eu
 
-# Run lint-staged for formatting and linting
 npx lint-staged
-
-# Run format check (matching CI)
-echo "🎨 Checking formatting..."
 npm run format:check
-
-# Run ESLint (matching CI)
-echo "🔍 Running ESLint..."
 npm run lint
-
-# Run type checking (matching CI - continue on error)
-echo "🔧 Running TypeScript type check..."
-npm run typecheck || echo "⚠️  TypeScript errors found but continuing..."
-
-# Run tests with coverage (matching CI)
-echo "🧪 Running tests..."
-npm test -- --coverage || {
-  echo "⚠️  Tests failed due to memory issues, trying individual test approach..."
-  test_failed=0
-  
-  echo "  Running hooks tests..."
-  NODE_OPTIONS="--max-old-space-size=8192" npx vitest --run src/hooks/__tests__/useViewMode.test.ts --no-coverage || test_failed=1
-  
-  echo "  Running lib tests..."
-  NODE_OPTIONS="--max-old-space-size=8192" npx vitest --run src/lib/__tests__/error-handler.test.ts --no-coverage || test_failed=1
-  NODE_OPTIONS="--max-old-space-size=8192" npx vitest --run src/lib/__tests__/logger.test.ts --no-coverage || test_failed=1
-  
-  if [ $test_failed -eq 1 ]; then
-    echo "❌ Some tests failed"
-    exit 1
-  else
-    echo "✅ All tests passed (using fallback approach)"
-  fi
-}
-
-echo "✅ Pre-commit checks completed!"
+npm run typecheck
+npm test -- --coverage

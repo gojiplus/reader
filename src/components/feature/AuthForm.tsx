@@ -5,8 +5,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation'; // Use App Router's navigation
-import React, { useState } from 'react';
-import { useForm, SubmitHandler } from 'react-hook-form';
+import { useState } from 'react';
+import { useForm, type SubmitHandler } from 'react-hook-form';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import {

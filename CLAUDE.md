@@ -1,6 +1,6 @@
 # Reader development guide
 
-Reader is a Next.js 15 App Router application for reading text-based PDFs. Firebase provides email/password authentication, per-user file storage, and Firestore metadata. PDF.js extracts text in the browser, the Web Speech API reads it aloud, and server-side Gemini actions provide summaries, quizzes, and sentence explanations.
+Reader is a Next.js 16 App Router application for reading text-based PDFs. Firebase provides email/password authentication, per-user file storage, and Firestore metadata. PDF.js extracts text in the browser, the Web Speech API reads it aloud, and server-side Gemini actions provide summaries, quizzes, and sentence explanations.
 
 ## Commands
 
@@ -21,7 +21,7 @@ The development server runs on port 9002. The Next.js server actions invoke the 
 
 Copy `.env.example` to `.env.local`. Firebase browser settings use `NEXT_PUBLIC_FIREBASE_*`. Gemini uses the server-only `GEMINI_API_KEY`. Local authenticated server routes use Application Default Credentials through `GOOGLE_APPLICATION_CREDENTIALS`; Google hosting supplies credentials automatically.
 
-Use Node.js 22.22.2 or newer; `.nvmrc` selects Node.js 22.
+Use Node.js 26.12.1 or newer; `.nvmrc` selects Node.js 26.
 
 ## Architecture
 
@@ -39,7 +39,7 @@ The webpack customization copies the PDF.js worker into the Next.js static chunk
 ## Project rules
 
 - Keep PDF support claims aligned with the implementation.
-- Do not disable TypeScript or ESLint checks in production builds.
+- Do not disable TypeScript or lint checks in production builds.
 - Use the typed App Router manifest in `src/app/manifest.ts`.
 - Run every check above before merging.
 - Deploy changed Firebase rules with `firebase deploy --only firestore:rules,storage`.

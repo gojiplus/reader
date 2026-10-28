@@ -1,9 +1,9 @@
 'use client';
 
-import { onAuthStateChanged, User } from 'firebase/auth';
+import { onAuthStateChanged, type User } from 'firebase/auth';
 import { Loader2, Terminal } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useHydrated } from '@/hooks/useHydrated';
 import { auth, firebaseConfigValid, initError } from '@/lib/firebase/clientApp';

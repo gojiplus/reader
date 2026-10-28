@@ -9,7 +9,7 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { useAuth } from '@/contexts/AuthContext';
-import { BookItem, ViewMode } from '@/lib/interfaces';
+import type { BookItem, ViewMode } from '@/lib/interfaces';
 import { BookList } from './bookList';
 
 interface Props {

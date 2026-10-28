@@ -52,12 +52,12 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 });
 
-// Mock IntersectionObserver
+// biome-ignore lint/complexity/useArrowFunction: Observer mocks must support construction with new.
 global.IntersectionObserver = vi.fn().mockImplementation(function () {
   return { observe: vi.fn(), unobserve: vi.fn(), disconnect: vi.fn() };
 });
 
-// Mock ResizeObserver
+// biome-ignore lint/complexity/useArrowFunction: Observer mocks must support construction with new.
 global.ResizeObserver = vi.fn().mockImplementation(function () {
   return { observe: vi.fn(), unobserve: vi.fn(), disconnect: vi.fn() };
 });

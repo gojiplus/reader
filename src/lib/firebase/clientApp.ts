@@ -1,8 +1,8 @@
 // src/lib/firebase/clientApp.ts
-import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth, Auth, connectAuthEmulator } from 'firebase/auth';
-import { getFirestore, Firestore, connectFirestoreEmulator } from 'firebase/firestore';
-import { getStorage, FirebaseStorage, connectStorageEmulator } from 'firebase/storage'; // Import Storage
+import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
+import { getAuth, type Auth, connectAuthEmulator } from 'firebase/auth';
+import { getFirestore, type Firestore, connectFirestoreEmulator } from 'firebase/firestore';
+import { getStorage, type FirebaseStorage, connectStorageEmulator } from 'firebase/storage'; // Import Storage
 import { logger } from '@/lib/logger';
 
 // Define Firebase config type
