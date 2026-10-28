@@ -19,7 +19,9 @@ describe('AuthForm validation', () => {
     render(<AuthForm />);
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'invalid' } });
     fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'short' } });
-    fireEvent.submit(screen.getByRole('button', { name: 'Login' }).closest('form')!);
+    const form = screen.getByRole('button', { name: 'Login' }).closest('form');
+    if (!form) throw new Error('Login form is missing');
+    fireEvent.submit(form);
 
     expect(await screen.findByText('Invalid email address.')).toBeInTheDocument();
     expect(screen.getByText('Password must be at least 6 characters.')).toBeInTheDocument();
@@ -30,7 +32,9 @@ describe('AuthForm validation', () => {
     render(<AuthForm />);
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'reader@example.com' } });
     fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'valid-password' } });
-    fireEvent.submit(screen.getByRole('button', { name: 'Login' }).closest('form')!);
+    const form = screen.getByRole('button', { name: 'Login' }).closest('form');
+    if (!form) throw new Error('Login form is missing');
+    fireEvent.submit(form);
 
     await waitFor(() => {
       expect(signInWithEmailAndPassword).toHaveBeenCalledWith(

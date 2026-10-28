@@ -2,7 +2,7 @@ import { Loader2 } from 'lucide-react';
 import { useEffect, useState, useRef } from 'react';
 import { ExplanationPopover } from '@/components/explanationPopover';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BookItem, TextExtractionState } from '@/lib/interfaces';
+import type { BookItem, TextExtractionState } from '@/lib/interfaces';
 import { getCurrentSentenceBoundaries } from '@/services/tts';
 
 interface Props {
@@ -37,8 +37,7 @@ export const BookContent = ({ selectedBook, textExtractionState }: Props) => {
         // Traverse all text nodes to find the correct positions
         const walker = document.createTreeWalker(textRef.current, NodeFilter.SHOW_TEXT, null);
 
-        let node: Node | null;
-        while ((node = walker.nextNode())) {
+        for (let node = walker.nextNode(); node; node = walker.nextNode()) {
           const nodeLength = node.textContent?.length || 0;
 
           // Check if the start boundary is in this node

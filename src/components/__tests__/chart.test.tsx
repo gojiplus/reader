@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { expect, it, vi } from 'vitest';
 import { ChartContainer, ChartLegendContent, ChartTooltipContent } from '@/components/ui/chart';
 
@@ -19,6 +20,27 @@ const payload = [
     payload: {},
   },
 ];
+
+it('renders light and dark chart colors without interpreting styles as HTML', () => {
+  const markup = renderToStaticMarkup(
+    <ChartContainer
+      id='reading'
+      config={{
+        pages: { theme: { light: '#123456', dark: '#abcdef' } },
+        unsafe: { color: 'red;</style><script>alert(1)</script>' },
+      }}
+    >
+      <div />
+    </ChartContainer>
+  );
+  const document = new DOMParser().parseFromString(markup, 'text/html');
+  expect(document.querySelector('script')).toBeNull();
+  expect(document.querySelector('style')?.textContent).toContain('--color-pages: #123456');
+  expect(document.querySelector('style')?.textContent).toContain('--color-pages: #abcdef');
+  expect(document.querySelector('style')?.textContent).toContain(
+    '.dark [data-chart=chart-reading]'
+  );
+});
 
 it('renders a configured tooltip label and a formatted zero value', () => {
   render(

@@ -1,4 +1,4 @@
-import fs from 'fs';
+import fs from 'node:fs';
 import wordListPath from 'word-list';
 
 // Load the word list once and create a Set for fast lookup

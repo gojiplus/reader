@@ -2,11 +2,22 @@
 
 import { DayPicker } from '@daypicker/react';
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from 'lucide-react';
-import * as React from 'react';
+import type * as React from 'react';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 export type CalendarProps = React.ComponentProps<typeof DayPicker>;
+
+function CalendarChevron({
+  orientation = 'down',
+  className,
+  size = 16,
+}: React.ComponentProps<NonNullable<NonNullable<CalendarProps['components']>['Chevron']>>) {
+  const Icon = { left: ChevronLeft, right: ChevronRight, up: ChevronUp, down: ChevronDown }[
+    orientation
+  ];
+  return <Icon className={cn('h-4 w-4', className)} size={size} aria-hidden />;
+}
 
 function Calendar({
   className,
@@ -55,15 +66,7 @@ function Calendar({
         ...classNames,
       }}
       components={{
-        Chevron: ({ orientation = 'down', className, size = 16 }) => {
-          const Icon = {
-            left: ChevronLeft,
-            right: ChevronRight,
-            up: ChevronUp,
-            down: ChevronDown,
-          }[orientation];
-          return <Icon className={cn('h-4 w-4', className)} size={size} aria-hidden />;
-        },
+        Chevron: CalendarChevron,
         ...components,
       }}
       {...props}

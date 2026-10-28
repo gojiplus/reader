@@ -22,15 +22,11 @@ updates:
           - react-dom
           - '@types/react'
           - '@types/react-dom'
-      nextjs:
-        patterns:
-          - next
-          - eslint-config-next
-          - eslint-plugin-react-hooks
       dev-dependencies:
         dependency-type: development
-        exclude-patterns:
-          - eslint
+        update-types:
+          - minor
+          - patch
       production-minor-patch:
         dependency-type: production
         update-types:

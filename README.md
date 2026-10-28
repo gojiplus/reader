@@ -15,7 +15,9 @@ Only text-based PDFs are supported. Reader does not currently extract text from 
 
 ## Development
 
-Reader uses Node.js 22 LTS (22.22.2 or newer) and npm 12.2.0. Copy the environment template and add credentials for a Firebase project with Email/Password Authentication, Firestore, and Storage enabled.
+TypeScript 7 checks types, Biome lints the application (including React and Next.js rules), and Prettier handles formatting. The pre-commit hook and CI require all checks and the complete test suite to pass.
+
+Reader uses Node.js 26 (26.12.1 or newer) and npm 12.2.1. Copy the environment template and add credentials for a Firebase project with Email/Password Authentication, Firestore, and Storage enabled.
 
 ```bash
 cp .env.example .env.local

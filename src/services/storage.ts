@@ -1,6 +1,11 @@
 'use client';
 
-import { ref, uploadBytesResumable, getDownloadURL, UploadTaskSnapshot } from 'firebase/storage';
+import {
+  ref,
+  uploadBytesResumable,
+  getDownloadURL,
+  type UploadTaskSnapshot,
+} from 'firebase/storage';
 import { storage, auth } from '@/lib/firebase/clientApp';
 
 /**

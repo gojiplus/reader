@@ -1,7 +1,7 @@
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSidebar } from '@/components/ui/sidebar';
-import { BookItem, TextExtractionState, ViewMode } from '@/lib/interfaces';
+import type { BookItem, TextExtractionState, ViewMode } from '@/lib/interfaces';
 import { AiCard } from './ai';
 import { BookContent } from './bookContent';
 

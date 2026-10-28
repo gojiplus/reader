@@ -1,6 +1,6 @@
-import { Timestamp } from 'firebase/firestore'; // Firestore functions
-import { type GenerateQuizQuestionsOutput } from '@/ai/flows/generate-quiz-questions';
-import { type SummarizeAudiobookChapterOutput } from '@/ai/flows/summarize-audiobook-chapter';
+import type { Timestamp } from 'firebase/firestore'; // Firestore functions
+import type { GenerateQuizQuestionsOutput } from '@/ai/flows/generate-quiz-questions';
+import type { SummarizeAudiobookChapterOutput } from '@/ai/flows/summarize-audiobook-chapter';
 
 // Define a type for a book including its content and Firestore ID
 // Define types for AI generated content

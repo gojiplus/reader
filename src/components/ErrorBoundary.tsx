@@ -1,7 +1,7 @@
 'use client';
 
 import { AlertCircle, RefreshCw } from 'lucide-react';
-import React, { Component, ReactNode } from 'react';
+import React, { Component, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { errorHandler, ErrorCategory } from '@/lib/error-handler';

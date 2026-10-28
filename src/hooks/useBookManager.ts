@@ -18,7 +18,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useErrorHandler, ErrorCategory } from '@/lib/error-handler';
 import { db, storage } from '@/lib/firebase/clientApp';
-import { BookItem, TextExtractionState } from '@/lib/interfaces';
+import type { BookItem, TextExtractionState } from '@/lib/interfaces';
 import { createComponentLogger } from '@/lib/logger';
 
 const logger = createComponentLogger('useBookManager');

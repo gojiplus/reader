@@ -4,7 +4,11 @@ import { SidebarProvider, useSidebar } from '@/components/ui/sidebar';
 
 function Controls() {
   const { open, setOpen } = useSidebar();
-  return <button onClick={() => setOpen(!open)}>{open ? 'Expanded' : 'Collapsed'}</button>;
+  return (
+    <button type='button' onClick={() => setOpen(!open)}>
+      {open ? 'Expanded' : 'Collapsed'}
+    </button>
+  );
 }
 
 afterEach(() => {
