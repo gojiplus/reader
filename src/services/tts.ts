@@ -302,7 +302,7 @@ export function stopSpeech(premature = false): void {
     const synth = window.speechSynthesis;
     if (synth.speaking || synth.paused) {
       console.warn(`[TTS] Requesting synth.cancel() (premature: ${premature})`);
-      wasCancelledPrematurely = premature; // Set flag *before* cancelling
+      wasCancelledPrematurely = premature; // Set flag *before* canceling
 
       // Cancel effectively stops speech and should trigger the 'onend' event listener eventually.
       // It might also trigger 'onerror' with 'interrupted'.
